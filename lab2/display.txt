@@ -1,0 +1,19 @@
+;display on/off
+
+	display_select:
+	setb ONOFF
+	jnb ONOFF, onoff_buttons
+	Wait_Milli_Seconds(#50)
+	jnb ONOFF, onoff_buttons
+	ljmp return
+
+	onoff_buttons:
+	jnb P0_flag, display_On1
+	Set_Cursor(2,14)
+	Send_Constant_String(#Off_message)
+	ljmp return
+	
+	display_On1:
+    Set_Cursor(2,14)
+	Send_Constant_String(#On_message)
+	ljmp return
