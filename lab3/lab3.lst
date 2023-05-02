@@ -1,0 +1,1952 @@
+                 -1    $MODLP51RC2
+0000              1   ;--------------------------------------------------------
+0000              2   ; Register and bit definitions for the AT89LP51RC2/RB2
+0000              3   ;--------------------------------------------------------
+0000              4   ; Special Function Registers
+0000              5   ;--------------------------------------------------------
+0000              6   ACC            DATA 0xe0
+0000              7   B              DATA 0xf0
+0000              8   PSW            DATA 0xd0
+0000              9   SP             DATA 0x81
+0000             10   SPX            DATA 0xef
+0000             11   DPL            DATA 0x82
+0000             12   DPH            DATA 0x83
+0000             13   DPLB           DATA 0xd4
+0000             14   DPHB           DATA 0xd5
+0000             15   PAGE           DATA 0xf6
+0000             16   AX             DATA 0xe1
+0000             17   BX             DATA 0xf7
+0000             18   DSPR           DATA 0xe2
+0000             19   FIRD           DATA 0xe3
+0000             20   MACL           DATA 0xe4
+0000             21   MACH           DATA 0xe5
+0000             22   PCON           DATA 0x87
+0000             23   AUXR           DATA 0x8e
+0000             24   AUXR1          DATA 0xa2
+0000             25   DPCF           DATA 0xa1
+0000             26   CKRL           DATA 0x97
+0000             27   CKCKON0        DATA 0x8f
+0000             28   CKCKON1        DATA 0xaf
+0000             29   CKSEL          DATA 0x85
+0000             30   CLKREG         DATA 0xae
+0000             31   OSCCON         DATA 0x86
+0000             32   IE             DATA 0xa8
+0000             33   IEN0           DATA 0xa8
+0000             34   IEN1           DATA 0xb1
+0000             35   IPH0           DATA 0xb7
+0000             36   IP             DATA 0xb8
+0000             37   IPL0           DATA 0xb8
+0000             38   IPH1           DATA 0xb3
+0000             39   IPL1           DATA 0xb2
+0000             40   P0             DATA 0x80
+0000             41   P1             DATA 0x90
+0000             42   P2             DATA 0xa0
+0000             43   P3             DATA 0xb0
+0000             44   P4             DATA 0xc0
+0000             45   P0M0           DATA 0xe6
+0000             46   P0M1           DATA 0xe7
+0000             47   P1M0           DATA 0xd6
+0000             48   P1M1           DATA 0xd7
+0000             49   P2M0           DATA 0xce
+0000             50   P2M1           DATA 0xcf
+0000             51   P3M0           DATA 0xc6
+0000             52   P3M1           DATA 0xc7
+0000             53   P4M0           DATA 0xbe
+0000             54   P4M1           DATA 0xbf
+0000             55   SCON           DATA 0x98
+0000             56   SBUF           DATA 0x99
+0000             57   SADEN          DATA 0xb9
+0000             58   SADDR          DATA 0xa9
+0000             59   BDRCON         DATA 0x9b
+0000             60   BRL            DATA 0x9a
+0000             61   TCON           DATA 0x88
+0000             62   TMOD           DATA 0x89
+0000             63   TCONB          DATA 0x91
+0000             64   TL0            DATA 0x8a
+0000             65   TH0            DATA 0x8c
+0000             66   TL1            DATA 0x8b
+0000             67   TH1            DATA 0x8d
+0000             68   RL0            DATA 0xf2
+0000             69   RL1            DATA 0xf3
+0000             70   RH0            DATA 0xf4
+0000             71   RH1            DATA 0xf5
+0000             72   WDTRST         DATA 0xa6
+0000             73   WDTPRG         DATA 0xa7
+0000             74   T2CON          DATA 0xc8
+0000             75   T2MOD          DATA 0xc9
+0000             76   RCAP2H         DATA 0xcb
+0000             77   RCAP2L         DATA 0xca
+0000             78   TH2            DATA 0xcd
+0000             79   TL2            DATA 0xcc
+0000             80   SPCON          DATA 0xc3
+0000             81   SPSTA          DATA 0xc4
+0000             82   SPDAT          DATA 0xc5
+0000             83   SSCON          DATA 0x93
+0000             84   SSCS           DATA 0x94
+0000             85   SSDAT          DATA 0x95
+0000             86   SSADR          DATA 0x96
+0000             87   KBLS           DATA 0x9c
+0000             88   KBE            DATA 0x9d
+0000             89   KBF            DATA 0x9e
+0000             90   KBMOD          DATA 0x9f
+0000             91   BMSEL          DATA 0x92
+0000             92   FCON           DATA 0xd1
+0000             93   EECON          DATA 0xd2
+0000             94   ACSRA          DATA 0xa3
+0000             95   ACSRB          DATA 0xab
+0000             96   AREF           DATA 0xbd
+0000             97   DADC           DATA 0xa4
+0000             98   DADI           DATA 0xa5
+0000             99   DADL           DATA 0xac
+0000            100   DADH           DATA 0xad
+0000            101   CCON           DATA 0xd8
+0000            102   CMOD           DATA 0xd9
+0000            103   CL             DATA 0xe9
+0000            104   CH             DATA 0xf9
+0000            105   CCAPM0         DATA 0xda
+0000            106   CCAPM1         DATA 0xdb
+0000            107   CCAPM2         DATA 0xdc
+0000            108   CCAPM3         DATA 0xdd
+0000            109   CCAPM4         DATA 0xde
+0000            110   CCAP0H         DATA 0xfa
+0000            111   CCAP1H         DATA 0xfb
+0000            112   CCAP2H         DATA 0xfc
+0000            113   CCAP3H         DATA 0xfd
+0000            114   CCAP4H         DATA 0xfe
+0000            115   CCAP0L         DATA 0xea
+0000            116   CCAP1L         DATA 0xeb
+0000            117   CCAP2L         DATA 0xec
+0000            118   CCAP3L         DATA 0xed
+0000            119   CCAP4L         DATA 0xee
+0000            120   ;--------------------------------------------------------
+0000            121   ; special function bits
+0000            122   ;--------------------------------------------------------
+0000            123   P              BIT 0xd0
+0000            124   F1             BIT 0xd1
+0000            125   OV             BIT 0xd2
+0000            126   RS0            BIT 0xd3
+0000            127   RS1            BIT 0xd4
+0000            128   F0             BIT 0xd5
+0000            129   AC             BIT 0xd6
+0000            130   CY             BIT 0xd7
+0000            131   EX0            BIT 0xa8
+0000            132   ET0            BIT 0xa9
+0000            133   EX1            BIT 0xaa
+0000            134   ET1            BIT 0xab
+0000            135   ES             BIT 0xac
+0000            136   ET2            BIT 0xad
+0000            137   EC             BIT 0xae
+0000            138   EA             BIT 0xaf
+0000            139   PX0            BIT 0xb8
+0000            140   PT0            BIT 0xb9
+0000            141   PX1            BIT 0xba
+0000            142   PT1            BIT 0xbb
+0000            143   PS             BIT 0xbc
+0000            144   PT2            BIT 0xbd
+0000            145   IP0D           BIT 0xbf
+0000            146   PPCL           BIT 0xbe
+0000            147   PT2L           BIT 0xbd
+0000            148   PLS            BIT 0xbc
+0000            149   PT1L           BIT 0xbb
+0000            150   PX1L           BIT 0xba
+0000            151   PT0L           BIT 0xb9
+0000            152   PX0L           BIT 0xb8
+0000            153   RXD            BIT 0xb0
+0000            154   TXD            BIT 0xb1
+0000            155   INT0           BIT 0xb2
+0000            156   INT1           BIT 0xb3
+0000            157   T0             BIT 0xb4
+0000            158   T1             BIT 0xb5
+0000            159   WR             BIT 0xb6
+0000            160   RD             BIT 0xb7
+0000            161   RI             BIT 0x98
+0000            162   TI             BIT 0x99
+0000            163   RB8            BIT 0x9a
+0000            164   TB8            BIT 0x9b
+0000            165   REN            BIT 0x9c
+0000            166   SM2            BIT 0x9d
+0000            167   SM1            BIT 0x9e
+0000            168   SM0            BIT 0x9f
+0000            169   IT0            BIT 0x88
+0000            170   IE0            BIT 0x89
+0000            171   IT1            BIT 0x8a
+0000            172   IE1            BIT 0x8b
+0000            173   TR0            BIT 0x8c
+0000            174   TF0            BIT 0x8d
+0000            175   TR1            BIT 0x8e
+0000            176   TF1            BIT 0x8f
+0000            177   CP_RL2         BIT 0xc8
+0000            178   C_T2           BIT 0xc9
+0000            179   TR2            BIT 0xca
+0000            180   EXEN2          BIT 0xcb
+0000            181   TCLK           BIT 0xcc
+0000            182   RCLK           BIT 0xcd
+0000            183   EXF2           BIT 0xce
+0000            184   TF2            BIT 0xcf
+0000            185   CF             BIT 0xdf
+0000            186   CR             BIT 0xde
+0000            187   CCF4           BIT 0xdc
+0000            188   CCF3           BIT 0xdb
+0000            189   CCF2           BIT 0xda
+0000            190   CCF1           BIT 0xd9
+0000            191   CCF0           BIT 0xd8
+0000              2   org 0000H
+0000 020789       3      ljmp MainProgram
+0003              4   
+0003              5   CLK  EQU 22118400
+0003              6   BAUD equ 115200
+0003              7   BRG_VAL equ (0x100-(CLK/(16*BAUD)))
+0003              8   
+0003              9   
+0003             10   ; These 'equ' must match the hardware wiring
+0003             11   ; They are used by 'LCD_4bit.inc'
+0003             12   LCD_RS equ P3.2
+0003             13   ; LCD_RW equ Px.x ; Always grounded
+0003             14   LCD_E  equ P3.3
+0003             15   LCD_D4 equ P3.4
+0003             16   LCD_D5 equ P3.5
+0003             17   LCD_D6 equ P3.6
+0003             18   LCD_D7 equ P3.7 
+0003             19   ONOFF     equ P0.0
+0003             20   SOUND_OUT equ P1.1
+                 22   	$LIST
+00AF             24   
+00AF             25   
+00AF             26   ; These �EQU� must match the wiring between the microcontroller and ADC 
+00AF             27   CE_ADC EQU P2.0  ;thermometer sensor 
+00AF             28   MY_MOSI EQU P2.1  ;MOSI
+00AF             29   MY_MISO EQU P2.2  ;MISO
+00AF             30   MY_SCLK EQU P2.3  ;CLK
+00AF             31    
+00AF             32   
+0030             33   dseg at 0x30
+0030             34   Result: ds 2
+0032             35   x:   ds 4
+0036             36   y:   ds 4
+003A             37   bcd: ds 5
+003F             38   button_1: ds 1
+0040             39   
+0040             40   
+0000             41   BSEG
+0000             42   mf: dbit 1 ; flag
+0001             43   Alarm_flag: dbit 1
+0002             44   
+                546   $LIST
+                 46   $LIST
+031F             48   
+031F             49   CSEG
+031F             50   ; Configure the serial port and baud rate
+031F             51   InitSerialPort:
+031F             52       ; Since the reset button bounces, we need to wait a bit before
+031F             53       ; sending messages, otherwise we risk displaying gibberish!
+031F 79DE        54       mov R1, #222
+0321 78A6        55       mov R0, #166
+0323 D8FE        56       djnz R0, $   ; 3 cycles->3*45.21123ns*166=22.51519us
+0325 D9FA        57       djnz R1, $-4 ; 22.51519us*222=4.998ms
+0327             58       ; Now we can proceed with the configuration
+0327 438780      59            orl     PCON,#0x80
+032A 759852      60            mov     SCON,#0x52
+032D 759B00      61            mov     BDRCON,#0x00
+0330 759AF4      62            mov     BRL,#BRG_VAL
+0333 759B1E      63            mov     BDRCON,#0x1E ; BDRCON=BRR|TBCK|RBCK|SPD;
+0336 22          64       ret
+0337             65       
+0337             66   INIT_SPI:
+0337 D2A2        67            setb MY_MISO
+0339 C2A3        68            clr MY_SCLK
+033B 22          69            ret
+033C             70   
+033C             71   DO_SPI_G: 
+033C C0E0        72            push acc 
+033E 7900        73            mov R1, #0 ; Received byte stored in R1
+0340 7A08        74            mov R2, #8 ; Loop counter (8-bits)
+0342             75   DO_SPI_G_LOOP: 
+0342 E8          76            mov a, R0 ; Byte to write is in R0
+0343 33          77            rlc a ; Carry flag has bit to write
+0344 F8          78            mov R0, a 
+0345 92A1        79            mov MY_MOSI, c 
+0347 D2A3        80            setb MY_SCLK ; Transmit
+0349 A2A2        81            mov c, MY_MISO ; Read received bit
+034B E9          82            mov a, R1 ; Save received bit in R1
+034C 33          83            rlc a 
+034D F9          84            mov R1, a 
+034E C2A3        85            clr MY_SCLK 
+0350 DAF0        86            djnz R2, DO_SPI_G_LOOP 
+0352 D0E0        87            pop acc 
+0354 22          88            ret
+0355             89   
+0355             90   Display_10_digit_BCD01:
+0355 C0E0        91            push acc
+0357 740D        91            mov a, #13
+0359 14          91            dec a
+035A 120094      91            lcall ?Set_Cursor_1 ; Select column and row
+035D D0E0        91            pop acc
+035F C000        92            push ar0
+0361 A83A        92            mov r0, bcd+0
+0363 120099      92            lcall ?Display_BCD
+0366 D000        92            pop ar0
+0368 22          93            ret 
+0369             94   
+0369             95   Display_10_digit_BCD02:
+0369 C0E0        96            push acc
+036B 740B        96            mov a, #11
+036D 14          96            dec a
+036E 120092      96            lcall ?Set_Cursor_2 ; Select column and row
+0371 D0E0        96            pop acc
+0373 C000        97            push ar0
+0375 A83B        97            mov r0, bcd+1
+0377 120099      97            lcall ?Display_BCD
+037A D000        97            pop ar0
+037C C000        98            push ar0
+037E A83A        98            mov r0, bcd+0
+0380 120099      98            lcall ?Display_BCD
+0383 D000        98            pop ar0
+0385             99            
+0385 C0E0       100            push acc
+0387 740B       100            mov a, #11
+0389 14         100            dec a
+038A 120092     100            lcall ?Set_Cursor_2 ; Select column and row
+038D D0E0       100            pop acc
+038F C083       101            push dph
+0391 C082       101            push dpl
+0393 C0E0       101            push acc
+0395 9004EA     101            mov dptr, #space
+0398 120087     101            lcall ?Send_Constant_String
+039B D0E0       101            pop acc
+039D D082       101            pop dpl
+039F D083       101            pop dph
+03A1 22         102            ret 
+03A2            103            
+03A2            104   
+                105   Send_BCD mac
+                106   	 push ar0
+                107   	 mov r0,%0
+                108   	 lcall ?Send_BCD
+                109   	 pop ar0
+                110   	endmac
+03A2            111   
+03A2            112   ?Send_BCD:
+03A2 C0E0       113            push acc
+03A4            114            ;send most significant digit
+03A4 E8         115            mov a, r0
+03A5 C4         116            swap a 
+03A6 540F       117            anl a, #0fh
+03A8 4430       118            orl a, #30h
+03AA 1204D5     119            lcall putchar
+03AD            120            ;send least sigfig
+03AD E8         121            mov a, r0
+03AE 540F       122            anl a ,#0fh
+03B0 4430       123            orl a, #30h
+03B2 1204D5     124            lcall putchar
+03B5            125            
+03B5 740D       126            mov a, #'\r'
+03B7 1204D5     127            lcall putchar
+03BA            128            
+03BA 740A       129            mov a, #'\n'
+03BC 1204D5     130            lcall putchar
+03BF            131            
+03BF D0E0       132            pop acc
+03C1 22         133            ret
+03C2            134   
+03C2            135   Delay:
+03C2 C002       136            push AR2
+03C4 7AFA       136            mov R2, #250
+03C6 12000E     136            lcall ?Wait_Milli_Seconds
+03C9 D002       136            pop AR2
+03CB C002       137            push AR2
+03CD 7AFA       137            mov R2, #250
+03CF 12000E     137            lcall ?Wait_Milli_Seconds
+03D2 D002       137            pop AR2
+03D4 C002       138            push AR2
+03D6 7AFA       138            mov R2, #250
+03D8 12000E     138            lcall ?Wait_Milli_Seconds
+03DB D002       138            pop AR2
+03DD C002       139            push AR2
+03DF 7AFA       139            mov R2, #250
+03E1 12000E     139            lcall ?Wait_Milli_Seconds
+03E4 D002       139            pop AR2
+03E6 22         140            ret
+03E7            141            
+03E7            142   Calculation1:
+03E7 853032     143            mov x+0, Result + 0
+03EA 853133     144            mov x+1, Result + 1
+03ED 753400     145            mov x+2, #0
+03F0 753500     146            mov x+3, #0
+03F3            147            ;multi by 410
+03F3 75369A     148            mov y+0, #low (410 % 0x10000) 
+03F6 753701     148            mov y+1, #high(410 % 0x10000) 
+03F9 753800     148            mov y+2, #low (410 / 0x10000) 
+03FC 753900     148            mov y+3, #high(410 / 0x10000) 
+03FF 120229     149            lcall mul32
+0402            150            ;Divide result by 1023
+0402 7536FF     151            mov y+0, #low (1023 % 0x10000) 
+0405 753703     151            mov y+1, #high(1023 % 0x10000) 
+0408 753800     151            mov y+2, #low (1023 / 0x10000) 
+040B 753900     151            mov y+3, #high(1023 / 0x10000) 
+040E 1202B6     152            lcall div32
+0411            153            ;subtract 273 from result
+0411 753611     154            mov y+0, #low (273 % 0x10000) 
+0414 753701     154            mov y+1, #high(273 % 0x10000) 
+0417 753800     154            mov y+2, #low (273 / 0x10000) 
+041A 753900     154            mov y+3, #high(273 / 0x10000) 
+041D 120195     155            lcall sub32
+0420 22         156            ret
+0421            157            
+0421            158   Calculation2:
+0421 853032     159            mov x+0, Result + 0
+0424 853133     160            mov x+1, Result + 1
+0427 753400     161            mov x+2, #0
+042A 753500     162            mov x+3, #0
+042D            163            ;multi by 410
+042D 75369A     164            mov y+0, #low (410 % 0x10000) 
+0430 753701     164            mov y+1, #high(410 % 0x10000) 
+0433 753800     164            mov y+2, #low (410 / 0x10000) 
+0436 753900     164            mov y+3, #high(410 / 0x10000) 
+0439 120229     165            lcall mul32
+043C            166            ;Divide result by 1023
+043C 7536FF     167            mov y+0, #low (1023 % 0x10000) 
+043F 753703     167            mov y+1, #high(1023 % 0x10000) 
+0442 753800     167            mov y+2, #low (1023 / 0x10000) 
+0445 753900     167            mov y+3, #high(1023 / 0x10000) 
+0448 1202B6     168            lcall div32
+044B            169            ;subtract 273 from result
+044B 753611     170            mov y+0, #low (273 % 0x10000) 
+044E 753701     170            mov y+1, #high(273 % 0x10000) 
+0451 753800     170            mov y+2, #low (273 / 0x10000) 
+0454 753900     170            mov y+3, #high(273 / 0x10000) 
+0457 120195     171            lcall sub32
+045A            172            ;9/5+32
+045A 753609     173            mov y+0, #low (9 % 0x10000) 
+045D 753700     173            mov y+1, #high(9 % 0x10000) 
+0460 753800     173            mov y+2, #low (9 / 0x10000) 
+0463 753900     173            mov y+3, #high(9 / 0x10000) 
+0466 120229     174            lcall mul32
+0469 753605     175            mov y+0, #low (5 % 0x10000) 
+046C 753700     175            mov y+1, #high(5 % 0x10000) 
+046F 753800     175            mov y+2, #low (5 / 0x10000) 
+0472 753900     175            mov y+3, #high(5 / 0x10000) 
+0475 1202B6     176            lcall div32
+0478 753620     177            mov y+0, #low (32 % 0x10000) 
+047B 753700     177            mov y+1, #high(32 % 0x10000) 
+047E 753800     177            mov y+2, #low (32 / 0x10000) 
+0481 753900     177            mov y+3, #high(32 / 0x10000) 
+0484 120174     178            lcall add32
+0487 22         179            ret
+0488            180   
+0488            181   Ring_or_not:
+0488            182   
+0488 200106     183            jb Alarm_flag, ring_sound
+048B 300100     184            jnb Alarm_flag, ring_mute
+048E            185            
+048E            186            ring_mute: 
+048E C291       187            clr SOUND_OUT
+0490 22         188            ret
+0491            189            
+0491            190            ;1-0-1-0
+0491            191            ring_sound:
+0491 D291       192            setb SOUND_OUT
+0493 C0E0       193            push acc
+0495 7401       193            mov a, #1
+0497 14         193            dec a
+0498 120094     193            lcall ?Set_Cursor_1 ; Select column and row
+049B D0E0       193            pop acc
+049D C083       194            push dph
+049F C082       194            push dpl
+04A1 C0E0       194            push acc
+04A3 90050F     194            mov dptr, #th_mess
+04A6 120087     194            lcall ?Send_Constant_String
+04A9 D0E0       194            pop acc
+04AB D082       194            pop dpl
+04AD D083       194            pop dph
+04AF C0E0       195            push acc
+04B1 7401       195            mov a, #1
+04B3 14         195            dec a
+04B4 120092     195            lcall ?Set_Cursor_2 ; Select column and row
+04B7 D0E0       195            pop acc
+04B9 C083       196            push dph
+04BB C082       196            push dpl
+04BD C0E0       196            push acc
+04BF 900668     196            mov dptr, #ani18
+04C2 120087     196            lcall ?Send_Constant_String
+04C5 D0E0       196            pop acc
+04C7 D082       196            pop dpl
+04C9 D083       196            pop dph
+04CB B291       197            cpl SOUND_OUT
+04CD 22         198            ret     
+04CE            199            
+04CE            200   loop_display:
+04CE 1203C2     201            lcall Delay
+04D1 021122     202            ljmp loop_a
+04D4 22         203            ret
+04D5            204            
+04D5            205   ; Send a character using the serial port
+04D5            206   putchar:
+04D5 3099FD     207       jnb TI, putchar
+04D8 C299       208       clr TI
+04DA F599       209       mov SBUF, a
+04DC 22         210       ret
+04DD            211   
+04DD            212   ; Send a constant-zero-terminated string using the serial port
+04DD            213   SendString:
+04DD E4         214       clr A
+04DE E53A       215       mov A, bcd+0
+04E0 93         216       movc A, @A+DPTR
+04E1 6006       217       jz SendStringDone
+04E3 1204D5     218       lcall putchar
+04E6 A3         219       inc DPTR
+04E7 80F4       220       sjmp SendString
+04E9            221       
+04E9            222   SendStringDone:
+04E9 22         223       ret
+04EA            224       
+04EA            225   
+04EA 2000       226   space: DB ' ',0
+04EC            227   Celsius_mess:
+04EC 43656C73   228       DB 'Celsius:       C', 0
+     6975733A
+     20202020
+     20202043
+     00
+04FD 22         229       ret
+04FE            230   F_mess:
+04FE 46616872   231            DB 'Fahrenh:       F',0
+     656E683A
+     20202020
+     20202046
+     00
+050F 20202054   232   th_mess: db '   THRESHOLD        ',0
+     48524553
+     484F4C44
+     20202020
+     20202020
+     00
+0524            233   Animation_mess:
+0524 20202052   234   Alarm_message: db '   REAL THERMO   ',0
+     45414C20
+     54484552
+     4D4F2020
+     2000
+0536 2A2A2A2A   235   Alarm_message02: db '****************',0
+     2A2A2A2A
+     2A2A2A2A
+     2A2A2A2A
+     00
+0547 20202020   236   ani1: db '                ',0
+     20202020
+     20202020
+     20202020
+     00
+0558 2B202020   237   ani2: db '+               ',0
+     20202020
+     20202020
+     20202020
+     00
+0569 2B2B2020   238   ani3: db '++              ',0
+     20202020
+     20202020
+     20202020
+     00
+057A 2B2B2B20   239   ani4: db '+++             ',0
+     20202020
+     20202020
+     20202020
+     00
+058B 2B2B2B2B   240   ani5: db '++++            ',0
+     20202020
+     20202020
+     20202020
+     00
+059C 2B2B2B2B   241   ani6: db '+++++           ',0
+     2B202020
+     20202020
+     20202020
+     00
+05AD 2B2B2B2B   242   ani7: db '++++++          ',0
+     2B2B2020
+     20202020
+     20202020
+     00
+05BE 2B2B2B2B   243   ani8: db '+++++++         ',0
+     2B2B2B20
+     20202020
+     20202020
+     00
+05CF 2B2B2B2B   244   ani9: db '++++++++        ',0
+     2B2B2B2B
+     20202020
+     20202020
+     00
+05E0 2B2B2B2B   245   ani10:db '+++++++++       ',0
+     2B2B2B2B
+     2B202020
+     20202020
+     00
+05F1 2B2B2B2B   246   ani11:db '++++++++++      ',0
+     2B2B2B2B
+     2B2B2020
+     20202020
+     00
+0602 2B2B2B2B   247   ani12:db '+++++++++++     ',0
+     2B2B2B2B
+     2B2B2B20
+     20202020
+     00
+0613 2B2B2B2B   248   ani13:db '++++++++++++    ',0
+     2B2B2B2B
+     2B2B2B2B
+     20202020
+     00
+0624 2B2B2B2B   249   ani14:db '+++++++++++++   ',0
+     2B2B2B2B
+     2B2B2B2B
+     2B202020
+     00
+0635 2B2B2B2B   250   ani15:db '++++++++++++++  ',0
+     2B2B2B2B
+     2B2B2B2B
+     2B2B2020
+     00
+0646 2B2B2B2B   251   ani16:db '+++++++++++++++ ',0
+     2B2B2B2B
+     2B2B2B2B
+     2B2B2B20
+     00
+0657 2B2B2B2B   252   ani17:db '++++++++++++++++',0
+     2B2B2B2B
+     2B2B2B2B
+     2B2B2B2B
+     00
+0668 20202020   253   ani18:db '                ',0
+     20202020
+     20202020
+     20202020
+     00
+0679 20202020   254   ani19:db '               +',0
+     20202020
+     20202020
+     2020202B
+     00
+068A 20202020   255   ani20:db '              ++',0
+     20202020
+     20202020
+     20202B2B
+     00
+069B 20202020   256   ani21:db '             +++',0
+     20202020
+     20202020
+     202B2B2B
+     00
+06AC 20202020   257   ani22:db '            ++++',0
+     20202020
+     20202020
+     2B2B2B2B
+     00
+06BD 20202020   258   ani23:db '           +++++',0
+     20202020
+     2020202B
+     2B2B2B2B
+     00
+06CE 20202020   259   ani24:db '          ++++++',0                         
+     20202020
+     20202B2B
+     2B2B2B2B
+     00
+06DF 20202020   260   ani25:db '         +++++++',0
+     20202020
+     202B2B2B
+     2B2B2B2B
+     00
+06F0 20202020   261   ani26:db '        ++++++++',0
+     20202020
+     2B2B2B2B
+     2B2B2B2B
+     00
+0701 20202020   262   ani27:db '       +++++++++',0
+     2020202B
+     2B2B2B2B
+     2B2B2B2B
+     00
+0712 20202020   263   ani28:db '      ++++++++++',0
+     20202B2B
+     2B2B2B2B
+     2B2B2B2B
+     00
+0723 20202020   264   ani29:db '     +++++++++++',0
+     202B2B2B
+     2B2B2B2B
+     2B2B2B2B
+     00
+0734 20202020   265   ani30:db '    ++++++++++++',0
+     2B2B2B2B
+     2B2B2B2B
+     2B2B2B2B
+     00
+0745 2020202B   266   ani31:db '   +++++++++++++',0
+     2B2B2B2B
+     2B2B2B2B
+     2B2B2B2B
+     00
+0756 20202B2B   267   ani32:db '  ++++++++++++++',0
+     2B2B2B2B
+     2B2B2B2B
+     2B2B2B2B
+     00
+0767 202B2B2B   268   ani33:db ' +++++++++++++++',0
+     2B2B2B2B
+     2B2B2B2B
+     2B2B2B2B
+     00
+0778 2B2B2B2B   269   ani34:db '++++++++++++++++',0
+     2B2B2B2B
+     2B2B2B2B
+     2B2B2B2B
+     00
+0789            270   
+0789            271   
+0789            272   MainProgram:
+0789 120337     273            lcall INIT_SPI
+078C 75E600     274            mov P0M0, #0
+078F 75E700     275       mov P0M1, #0
+0792 12005D     276       lcall LCD_4BIT
+0795            277    
+0795            278   Animation:
+0795 C0E0       279            push acc
+0797 7401       279            mov a, #1
+0799 14         279            dec a
+079A 120094     279            lcall ?Set_Cursor_1 ; Select column and row
+079D D0E0       279            pop acc
+079F C083       280            push dph
+07A1 C082       280            push dpl
+07A3 C0E0       280            push acc
+07A5 900524     280            mov dptr, #Alarm_message
+07A8 120087     280            lcall ?Send_Constant_String
+07AB D0E0       280            pop acc
+07AD D082       280            pop dpl
+07AF D083       280            pop dph
+07B1            281            
+07B1 C0E0       282            push acc
+07B3 7401       282            mov a, #1
+07B5 14         282            dec a
+07B6 120092     282            lcall ?Set_Cursor_2 ; Select column and row
+07B9 D0E0       282            pop acc
+07BB C083       283            push dph
+07BD C082       283            push dpl
+07BF C0E0       283            push acc
+07C1 900536     283            mov dptr, #Alarm_message02
+07C4 120087     283            lcall ?Send_Constant_String
+07C7 D0E0       283            pop acc
+07C9 D082       283            pop dpl
+07CB D083       283            pop dph
+07CD            284            
+07CD C002       285            push AR2
+07CF 7AFA       285            mov R2, #250
+07D1 12000E     285            lcall ?Wait_Milli_Seconds
+07D4 D002       285            pop AR2
+07D6 C002       286            push AR2
+07D8 7AFA       286            mov R2, #250
+07DA 12000E     286            lcall ?Wait_Milli_Seconds
+07DD D002       286            pop AR2
+07DF C002       287            push AR2
+07E1 7AFA       287            mov R2, #250
+07E3 12000E     287            lcall ?Wait_Milli_Seconds
+07E6 D002       287            pop AR2
+07E8 C002       288            push AR2
+07EA 7AFA       288            mov R2, #250
+07EC 12000E     288            lcall ?Wait_Milli_Seconds
+07EF D002       288            pop AR2
+07F1            289            
+07F1 C002       290            push AR2
+07F3 7AFA       290            mov R2, #250
+07F5 12000E     290            lcall ?Wait_Milli_Seconds
+07F8 D002       290            pop AR2
+07FA C002       291            push AR2
+07FC 7AFA       291            mov R2, #250
+07FE 12000E     291            lcall ?Wait_Milli_Seconds
+0801 D002       291            pop AR2
+0803 C002       292            push AR2
+0805 7AFA       292            mov R2, #250
+0807 12000E     292            lcall ?Wait_Milli_Seconds
+080A D002       292            pop AR2
+080C C002       293            push AR2
+080E 7AFA       293            mov R2, #250
+0810 12000E     293            lcall ?Wait_Milli_Seconds
+0813 D002       293            pop AR2
+0815            294            
+0815 C002       295            push AR2
+0817 7AFA       295            mov R2, #250
+0819 12000E     295            lcall ?Wait_Milli_Seconds
+081C D002       295            pop AR2
+081E C002       296            push AR2
+0820 7AFA       296            mov R2, #250
+0822 12000E     296            lcall ?Wait_Milli_Seconds
+0825 D002       296            pop AR2
+0827 C002       297            push AR2
+0829 7AFA       297            mov R2, #250
+082B 12000E     297            lcall ?Wait_Milli_Seconds
+082E D002       297            pop AR2
+0830 C002       298            push AR2
+0832 7AFA       298            mov R2, #250
+0834 12000E     298            lcall ?Wait_Milli_Seconds
+0837 D002       298            pop AR2
+0839            299            
+0839 C0E0       300            push acc
+083B 7401       300            mov a, #1
+083D 14         300            dec a
+083E 120094     300            lcall ?Set_Cursor_1 ; Select column and row
+0841 D0E0       300            pop acc
+0843 C083       301            push dph
+0845 C082       301            push dpl
+0847 C0E0       301            push acc
+0849 900547     301            mov dptr, #ani1
+084C 120087     301            lcall ?Send_Constant_String
+084F D0E0       301            pop acc
+0851 D082       301            pop dpl
+0853 D083       301            pop dph
+0855            301   
+0855 C0E0       302            push acc
+0857 7401       302            mov a, #1
+0859 14         302            dec a
+085A 120092     302            lcall ?Set_Cursor_2 ; Select column and row
+085D D0E0       302            pop acc
+085F C083       303            push dph
+0861 C082       303            push dpl
+0863 C0E0       303            push acc
+0865 900668     303            mov dptr, #ani18
+0868 120087     303            lcall ?Send_Constant_String
+086B D0E0       303            pop acc
+086D D082       303            pop dpl
+086F D083       303            pop dph
+0871 C002       304            push AR2
+0873 7A32       304            mov R2, #50
+0875 12000E     304            lcall ?Wait_Milli_Seconds
+0878 D002       304            pop AR2
+087A            305            
+087A C0E0       306            push acc
+087C 7401       306            mov a, #1
+087E 14         306            dec a
+087F 120094     306            lcall ?Set_Cursor_1 ; Select column and row
+0882 D0E0       306            pop acc
+0884 C083       307            push dph
+0886 C082       307            push dpl
+0888 C0E0       307            push acc
+088A 900558     307            mov dptr, #ani2
+088D 120087     307            lcall ?Send_Constant_String
+0890 D0E0       307            pop acc
+0892 D082       307            pop dpl
+0894 D083       307            pop dph
+0896 C0E0       308            push acc
+0898 7401       308            mov a, #1
+089A 14         308            dec a
+089B 120092     308            lcall ?Set_Cursor_2 ; Select column and row
+089E D0E0       308            pop acc
+08A0 C083       309            push dph
+08A2 C082       309            push dpl
+08A4 C0E0       309            push acc
+08A6 900679     309            mov dptr, #ani19
+08A9 120087     309            lcall ?Send_Constant_String
+08AC D0E0       309            pop acc
+08AE D082       309            pop dpl
+08B0 D083       309            pop dph
+08B2 C002       310            push AR2
+08B4 7A32       310            mov R2, #50
+08B6 12000E     310            lcall ?Wait_Milli_Seconds
+08B9 D002       310            pop AR2
+08BB C0E0       311            push acc
+08BD 7401       311            mov a, #1
+08BF 14         311            dec a
+08C0 120094     311            lcall ?Set_Cursor_1 ; Select column and row
+08C3 D0E0       311            pop acc
+08C5 C083       312            push dph
+08C7 C082       312            push dpl
+08C9 C0E0       312            push acc
+08CB 900569     312            mov dptr, #ani3
+08CE 120087     312            lcall ?Send_Constant_String
+08D1 D0E0       312            pop acc
+08D3 D082       312            pop dpl
+08D5 D083       312            pop dph
+08D7 C0E0       313            push acc
+08D9 7401       313            mov a, #1
+08DB 14         313            dec a
+08DC 120092     313            lcall ?Set_Cursor_2 ; Select column and row
+08DF D0E0       313            pop acc
+08E1 C083       314            push dph
+08E3 C082       314            push dpl
+08E5 C0E0       314            push acc
+08E7 90068A     314            mov dptr, #ani20
+08EA 120087     314            lcall ?Send_Constant_String
+08ED D0E0       314            pop acc
+08EF D082       314            pop dpl
+08F1 D083       314            pop dph
+08F3 C002       315            push AR2
+08F5 7A32       315            mov R2, #50
+08F7 12000E     315            lcall ?Wait_Milli_Seconds
+08FA D002       315            pop AR2
+08FC C0E0       316            push acc
+08FE 7401       316            mov a, #1
+0900 14         316            dec a
+0901 120094     316            lcall ?Set_Cursor_1 ; Select column and row
+0904 D0E0       316            pop acc
+0906 C083       317            push dph
+0908 C082       317            push dpl
+090A C0E0       317            push acc
+090C 90057A     317            mov dptr, #ani4
+090F 120087     317            lcall ?Send_Constant_String
+0912 D0E0       317            pop acc
+0914 D082       317            pop dpl
+0916 D083       317            pop dph
+0918 C0E0       318            push acc
+091A 7401       318            mov a, #1
+091C 14         318            dec a
+091D 120092     318            lcall ?Set_Cursor_2 ; Select column and row
+0920 D0E0       318            pop acc
+0922 C083       319            push dph
+0924 C082       319            push dpl
+0926 C0E0       319            push acc
+0928 90069B     319            mov dptr, #ani21
+092B 120087     319            lcall ?Send_Constant_String
+092E D0E0       319            pop acc
+0930 D082       319            pop dpl
+0932 D083       319            pop dph
+0934 C002       320            push AR2
+0936 7A32       320            mov R2, #50
+0938 12000E     320            lcall ?Wait_Milli_Seconds
+093B D002       320            pop AR2
+093D C0E0       321            push acc
+093F 7401       321            mov a, #1
+0941 14         321            dec a
+0942 120094     321            lcall ?Set_Cursor_1 ; Select column and row
+0945 D0E0       321            pop acc
+0947 C083       322            push dph
+0949 C082       322            push dpl
+094B C0E0       322            push acc
+094D 90058B     322            mov dptr, #ani5
+0950 120087     322            lcall ?Send_Constant_String
+0953 D0E0       322            pop acc
+0955 D082       322            pop dpl
+0957 D083       322            pop dph
+0959 C0E0       323            push acc
+095B 7401       323            mov a, #1
+095D 14         323            dec a
+095E 120092     323            lcall ?Set_Cursor_2 ; Select column and row
+0961 D0E0       323            pop acc
+0963 C083       324            push dph
+0965 C082       324            push dpl
+0967 C0E0       324            push acc
+0969 9006AC     324            mov dptr, #ani22
+096C 120087     324            lcall ?Send_Constant_String
+096F D0E0       324            pop acc
+0971 D082       324            pop dpl
+0973 D083       324            pop dph
+0975 C002       325            push AR2
+0977 7A32       325            mov R2, #50
+0979 12000E     325            lcall ?Wait_Milli_Seconds
+097C D002       325            pop AR2
+097E C0E0       326            push acc
+0980 7401       326            mov a, #1
+0982 14         326            dec a
+0983 120094     326            lcall ?Set_Cursor_1 ; Select column and row
+0986 D0E0       326            pop acc
+0988 C083       327            push dph
+098A C082       327            push dpl
+098C C0E0       327            push acc
+098E 90059C     327            mov dptr, #ani6
+0991 120087     327            lcall ?Send_Constant_String
+0994 D0E0       327            pop acc
+0996 D082       327            pop dpl
+0998 D083       327            pop dph
+099A C0E0       328            push acc
+099C 7401       328            mov a, #1
+099E 14         328            dec a
+099F 120092     328            lcall ?Set_Cursor_2 ; Select column and row
+09A2 D0E0       328            pop acc
+09A4 C083       329            push dph
+09A6 C082       329            push dpl
+09A8 C0E0       329            push acc
+09AA 9006BD     329            mov dptr, #ani23
+09AD 120087     329            lcall ?Send_Constant_String
+09B0 D0E0       329            pop acc
+09B2 D082       329            pop dpl
+09B4 D083       329            pop dph
+09B6 C002       330            push AR2
+09B8 7A32       330            mov R2, #50
+09BA 12000E     330            lcall ?Wait_Milli_Seconds
+09BD D002       330            pop AR2
+09BF C0E0       331            push acc
+09C1 7401       331            mov a, #1
+09C3 14         331            dec a
+09C4 120094     331            lcall ?Set_Cursor_1 ; Select column and row
+09C7 D0E0       331            pop acc
+09C9 C083       332            push dph
+09CB C082       332            push dpl
+09CD C0E0       332            push acc
+09CF 9005AD     332            mov dptr, #ani7
+09D2 120087     332            lcall ?Send_Constant_String
+09D5 D0E0       332            pop acc
+09D7 D082       332            pop dpl
+09D9 D083       332            pop dph
+09DB C0E0       333            push acc
+09DD 7401       333            mov a, #1
+09DF 14         333            dec a
+09E0 120092     333            lcall ?Set_Cursor_2 ; Select column and row
+09E3 D0E0       333            pop acc
+09E5 C083       334            push dph
+09E7 C082       334            push dpl
+09E9 C0E0       334            push acc
+09EB 9006CE     334            mov dptr, #ani24
+09EE 120087     334            lcall ?Send_Constant_String
+09F1 D0E0       334            pop acc
+09F3 D082       334            pop dpl
+09F5 D083       334            pop dph
+09F7 C002       335            push AR2
+09F9 7A32       335            mov R2, #50
+09FB 12000E     335            lcall ?Wait_Milli_Seconds
+09FE D002       335            pop AR2
+0A00 C0E0       336            push acc
+0A02 7401       336            mov a, #1
+0A04 14         336            dec a
+0A05 120094     336            lcall ?Set_Cursor_1 ; Select column and row
+0A08 D0E0       336            pop acc
+0A0A C083       337            push dph
+0A0C C082       337            push dpl
+0A0E C0E0       337            push acc
+0A10 9005BE     337            mov dptr, #ani8
+0A13 120087     337            lcall ?Send_Constant_String
+0A16 D0E0       337            pop acc
+0A18 D082       337            pop dpl
+0A1A D083       337            pop dph
+0A1C C0E0       338            push acc
+0A1E 7401       338            mov a, #1
+0A20 14         338            dec a
+0A21 120092     338            lcall ?Set_Cursor_2 ; Select column and row
+0A24 D0E0       338            pop acc
+0A26 C083       339            push dph
+0A28 C082       339            push dpl
+0A2A C0E0       339            push acc
+0A2C 9006DF     339            mov dptr, #ani25
+0A2F 120087     339            lcall ?Send_Constant_String
+0A32 D0E0       339            pop acc
+0A34 D082       339            pop dpl
+0A36 D083       339            pop dph
+0A38 C002       340            push AR2
+0A3A 7A32       340            mov R2, #50
+0A3C 12000E     340            lcall ?Wait_Milli_Seconds
+0A3F D002       340            pop AR2
+0A41 C0E0       341            push acc
+0A43 7401       341            mov a, #1
+0A45 14         341            dec a
+0A46 120094     341            lcall ?Set_Cursor_1 ; Select column and row
+0A49 D0E0       341            pop acc
+0A4B C083       342            push dph
+0A4D C082       342            push dpl
+0A4F C0E0       342            push acc
+0A51 9005CF     342            mov dptr, #ani9
+0A54 120087     342            lcall ?Send_Constant_String
+0A57 D0E0       342            pop acc
+0A59 D082       342            pop dpl
+0A5B D083       342            pop dph
+0A5D C0E0       343            push acc
+0A5F 7401       343            mov a, #1
+0A61 14         343            dec a
+0A62 120092     343            lcall ?Set_Cursor_2 ; Select column and row
+0A65 D0E0       343            pop acc
+0A67 C083       344            push dph
+0A69 C082       344            push dpl
+0A6B C0E0       344            push acc
+0A6D 9006F0     344            mov dptr, #ani26
+0A70 120087     344            lcall ?Send_Constant_String
+0A73 D0E0       344            pop acc
+0A75 D082       344            pop dpl
+0A77 D083       344            pop dph
+0A79 C002       345            push AR2
+0A7B 7A32       345            mov R2, #50
+0A7D 12000E     345            lcall ?Wait_Milli_Seconds
+0A80 D002       345            pop AR2
+0A82 C0E0       346            push acc
+0A84 7401       346            mov a, #1
+0A86 14         346            dec a
+0A87 120094     346            lcall ?Set_Cursor_1 ; Select column and row
+0A8A D0E0       346            pop acc
+0A8C C083       347            push dph
+0A8E C082       347            push dpl
+0A90 C0E0       347            push acc
+0A92 9005E0     347            mov dptr, #ani10
+0A95 120087     347            lcall ?Send_Constant_String
+0A98 D0E0       347            pop acc
+0A9A D082       347            pop dpl
+0A9C D083       347            pop dph
+0A9E C0E0       348            push acc
+0AA0 7401       348            mov a, #1
+0AA2 14         348            dec a
+0AA3 120092     348            lcall ?Set_Cursor_2 ; Select column and row
+0AA6 D0E0       348            pop acc
+0AA8 C083       349            push dph
+0AAA C082       349            push dpl
+0AAC C0E0       349            push acc
+0AAE 900701     349            mov dptr, #ani27
+0AB1 120087     349            lcall ?Send_Constant_String
+0AB4 D0E0       349            pop acc
+0AB6 D082       349            pop dpl
+0AB8 D083       349            pop dph
+0ABA C002       350            push AR2
+0ABC 7A32       350            mov R2, #50
+0ABE 12000E     350            lcall ?Wait_Milli_Seconds
+0AC1 D002       350            pop AR2
+0AC3 C0E0       351            push acc
+0AC5 7401       351            mov a, #1
+0AC7 14         351            dec a
+0AC8 120094     351            lcall ?Set_Cursor_1 ; Select column and row
+0ACB D0E0       351            pop acc
+0ACD C083       352            push dph
+0ACF C082       352            push dpl
+0AD1 C0E0       352            push acc
+0AD3 9005F1     352            mov dptr, #ani11
+0AD6 120087     352            lcall ?Send_Constant_String
+0AD9 D0E0       352            pop acc
+0ADB D082       352            pop dpl
+0ADD D083       352            pop dph
+0ADF C0E0       353            push acc
+0AE1 7401       353            mov a, #1
+0AE3 14         353            dec a
+0AE4 120092     353            lcall ?Set_Cursor_2 ; Select column and row
+0AE7 D0E0       353            pop acc
+0AE9 C083       354            push dph
+0AEB C082       354            push dpl
+0AED C0E0       354            push acc
+0AEF 900712     354            mov dptr, #ani28
+0AF2 120087     354            lcall ?Send_Constant_String
+0AF5 D0E0       354            pop acc
+0AF7 D082       354            pop dpl
+0AF9 D083       354            pop dph
+0AFB C002       355            push AR2
+0AFD 7A32       355            mov R2, #50
+0AFF 12000E     355            lcall ?Wait_Milli_Seconds
+0B02 D002       355            pop AR2
+0B04 C0E0       356            push acc
+0B06 7401       356            mov a, #1
+0B08 14         356            dec a
+0B09 120094     356            lcall ?Set_Cursor_1 ; Select column and row
+0B0C D0E0       356            pop acc
+0B0E C083       357            push dph
+0B10 C082       357            push dpl
+0B12 C0E0       357            push acc
+0B14 900602     357            mov dptr, #ani12
+0B17 120087     357            lcall ?Send_Constant_String
+0B1A D0E0       357            pop acc
+0B1C D082       357            pop dpl
+0B1E D083       357            pop dph
+0B20 C0E0       358            push acc
+0B22 7401       358            mov a, #1
+0B24 14         358            dec a
+0B25 120092     358            lcall ?Set_Cursor_2 ; Select column and row
+0B28 D0E0       358            pop acc
+0B2A C083       359            push dph
+0B2C C082       359            push dpl
+0B2E C0E0       359            push acc
+0B30 900723     359            mov dptr, #ani29
+0B33 120087     359            lcall ?Send_Constant_String
+0B36 D0E0       359            pop acc
+0B38 D082       359            pop dpl
+0B3A D083       359            pop dph
+0B3C C002       360            push AR2
+0B3E 7A32       360            mov R2, #50
+0B40 12000E     360            lcall ?Wait_Milli_Seconds
+0B43 D002       360            pop AR2
+0B45 C0E0       361            push acc
+0B47 7401       361            mov a, #1
+0B49 14         361            dec a
+0B4A 120094     361            lcall ?Set_Cursor_1 ; Select column and row
+0B4D D0E0       361            pop acc
+0B4F C083       362            push dph
+0B51 C082       362            push dpl
+0B53 C0E0       362            push acc
+0B55 900613     362            mov dptr, #ani13
+0B58 120087     362            lcall ?Send_Constant_String
+0B5B D0E0       362            pop acc
+0B5D D082       362            pop dpl
+0B5F D083       362            pop dph
+0B61 C0E0       363            push acc
+0B63 7401       363            mov a, #1
+0B65 14         363            dec a
+0B66 120092     363            lcall ?Set_Cursor_2 ; Select column and row
+0B69 D0E0       363            pop acc
+0B6B C083       364            push dph
+0B6D C082       364            push dpl
+0B6F C0E0       364            push acc
+0B71 900734     364            mov dptr, #ani30
+0B74 120087     364            lcall ?Send_Constant_String
+0B77 D0E0       364            pop acc
+0B79 D082       364            pop dpl
+0B7B D083       364            pop dph
+0B7D C002       365            push AR2
+0B7F 7A32       365            mov R2, #50
+0B81 12000E     365            lcall ?Wait_Milli_Seconds
+0B84 D002       365            pop AR2
+0B86 C0E0       366            push acc
+0B88 7401       366            mov a, #1
+0B8A 14         366            dec a
+0B8B 120094     366            lcall ?Set_Cursor_1 ; Select column and row
+0B8E D0E0       366            pop acc
+0B90 C083       367            push dph
+0B92 C082       367            push dpl
+0B94 C0E0       367            push acc
+0B96 900624     367            mov dptr, #ani14
+0B99 120087     367            lcall ?Send_Constant_String
+0B9C D0E0       367            pop acc
+0B9E D082       367            pop dpl
+0BA0 D083       367            pop dph
+0BA2 C0E0       368            push acc
+0BA4 7401       368            mov a, #1
+0BA6 14         368            dec a
+0BA7 120092     368            lcall ?Set_Cursor_2 ; Select column and row
+0BAA D0E0       368            pop acc
+0BAC C083       369            push dph
+0BAE C082       369            push dpl
+0BB0 C0E0       369            push acc
+0BB2 900745     369            mov dptr, #ani31
+0BB5 120087     369            lcall ?Send_Constant_String
+0BB8 D0E0       369            pop acc
+0BBA D082       369            pop dpl
+0BBC D083       369            pop dph
+0BBE C002       370            push AR2
+0BC0 7A32       370            mov R2, #50
+0BC2 12000E     370            lcall ?Wait_Milli_Seconds
+0BC5 D002       370            pop AR2
+0BC7 C0E0       371            push acc
+0BC9 7401       371            mov a, #1
+0BCB 14         371            dec a
+0BCC 120094     371            lcall ?Set_Cursor_1 ; Select column and row
+0BCF D0E0       371            pop acc
+0BD1 C083       372            push dph
+0BD3 C082       372            push dpl
+0BD5 C0E0       372            push acc
+0BD7 900635     372            mov dptr, #ani15
+0BDA 120087     372            lcall ?Send_Constant_String
+0BDD D0E0       372            pop acc
+0BDF D082       372            pop dpl
+0BE1 D083       372            pop dph
+0BE3 C0E0       373            push acc
+0BE5 7401       373            mov a, #1
+0BE7 14         373            dec a
+0BE8 120092     373            lcall ?Set_Cursor_2 ; Select column and row
+0BEB D0E0       373            pop acc
+0BED C083       374            push dph
+0BEF C082       374            push dpl
+0BF1 C0E0       374            push acc
+0BF3 900756     374            mov dptr, #ani32
+0BF6 120087     374            lcall ?Send_Constant_String
+0BF9 D0E0       374            pop acc
+0BFB D082       374            pop dpl
+0BFD D083       374            pop dph
+0BFF C002       375            push AR2
+0C01 7A32       375            mov R2, #50
+0C03 12000E     375            lcall ?Wait_Milli_Seconds
+0C06 D002       375            pop AR2
+0C08 C0E0       376            push acc
+0C0A 7401       376            mov a, #1
+0C0C 14         376            dec a
+0C0D 120094     376            lcall ?Set_Cursor_1 ; Select column and row
+0C10 D0E0       376            pop acc
+0C12 C083       377            push dph
+0C14 C082       377            push dpl
+0C16 C0E0       377            push acc
+0C18 900646     377            mov dptr, #ani16
+0C1B 120087     377            lcall ?Send_Constant_String
+0C1E D0E0       377            pop acc
+0C20 D082       377            pop dpl
+0C22 D083       377            pop dph
+0C24 C0E0       378            push acc
+0C26 7401       378            mov a, #1
+0C28 14         378            dec a
+0C29 120092     378            lcall ?Set_Cursor_2 ; Select column and row
+0C2C D0E0       378            pop acc
+0C2E C083       379            push dph
+0C30 C082       379            push dpl
+0C32 C0E0       379            push acc
+0C34 900767     379            mov dptr, #ani33
+0C37 120087     379            lcall ?Send_Constant_String
+0C3A D0E0       379            pop acc
+0C3C D082       379            pop dpl
+0C3E D083       379            pop dph
+0C40 C002       380            push AR2
+0C42 7A32       380            mov R2, #50
+0C44 12000E     380            lcall ?Wait_Milli_Seconds
+0C47 D002       380            pop AR2
+0C49 C0E0       381            push acc
+0C4B 7401       381            mov a, #1
+0C4D 14         381            dec a
+0C4E 120094     381            lcall ?Set_Cursor_1 ; Select column and row
+0C51 D0E0       381            pop acc
+0C53 C083       382            push dph
+0C55 C082       382            push dpl
+0C57 C0E0       382            push acc
+0C59 900657     382            mov dptr, #ani17
+0C5C 120087     382            lcall ?Send_Constant_String
+0C5F D0E0       382            pop acc
+0C61 D082       382            pop dpl
+0C63 D083       382            pop dph
+0C65 C0E0       383            push acc
+0C67 7401       383            mov a, #1
+0C69 14         383            dec a
+0C6A 120092     383            lcall ?Set_Cursor_2 ; Select column and row
+0C6D D0E0       383            pop acc
+0C6F C083       384            push dph
+0C71 C082       384            push dpl
+0C73 C0E0       384            push acc
+0C75 900778     384            mov dptr, #ani34
+0C78 120087     384            lcall ?Send_Constant_String
+0C7B D0E0       384            pop acc
+0C7D D082       384            pop dpl
+0C7F D083       384            pop dph
+0C81 C002       385            push AR2
+0C83 7A32       385            mov R2, #50
+0C85 12000E     385            lcall ?Wait_Milli_Seconds
+0C88 D002       385            pop AR2
+0C8A            386            
+0C8A C002       387            push AR2
+0C8C 7A64       387            mov R2, #100
+0C8E 12000E     387            lcall ?Wait_Milli_Seconds
+0C91 D002       387            pop AR2
+0C93            388            
+0C93 C0E0       389            push acc
+0C95 7401       389            mov a, #1
+0C97 14         389            dec a
+0C98 120094     389            lcall ?Set_Cursor_1 ; Select column and row
+0C9B D0E0       389            pop acc
+0C9D C083       390            push dph
+0C9F C082       390            push dpl
+0CA1 C0E0       390            push acc
+0CA3 900657     390            mov dptr, #ani17
+0CA6 120087     390            lcall ?Send_Constant_String
+0CA9 D0E0       390            pop acc
+0CAB D082       390            pop dpl
+0CAD D083       390            pop dph
+0CAF C0E0       391            push acc
+0CB1 7401       391            mov a, #1
+0CB3 14         391            dec a
+0CB4 120092     391            lcall ?Set_Cursor_2 ; Select column and row
+0CB7 D0E0       391            pop acc
+0CB9 C083       392            push dph
+0CBB C082       392            push dpl
+0CBD C0E0       392            push acc
+0CBF 900778     392            mov dptr, #ani34
+0CC2 120087     392            lcall ?Send_Constant_String
+0CC5 D0E0       392            pop acc
+0CC7 D082       392            pop dpl
+0CC9 D083       392            pop dph
+0CCB C002       393            push AR2
+0CCD 7A32       393            mov R2, #50
+0CCF 12000E     393            lcall ?Wait_Milli_Seconds
+0CD2 D002       393            pop AR2
+0CD4 C0E0       394            push acc
+0CD6 7401       394            mov a, #1
+0CD8 14         394            dec a
+0CD9 120094     394            lcall ?Set_Cursor_1 ; Select column and row
+0CDC D0E0       394            pop acc
+0CDE C083       395            push dph
+0CE0 C082       395            push dpl
+0CE2 C0E0       395            push acc
+0CE4 900646     395            mov dptr, #ani16
+0CE7 120087     395            lcall ?Send_Constant_String
+0CEA D0E0       395            pop acc
+0CEC D082       395            pop dpl
+0CEE D083       395            pop dph
+0CF0 C0E0       396            push acc
+0CF2 7401       396            mov a, #1
+0CF4 14         396            dec a
+0CF5 120092     396            lcall ?Set_Cursor_2 ; Select column and row
+0CF8 D0E0       396            pop acc
+0CFA C083       397            push dph
+0CFC C082       397            push dpl
+0CFE C0E0       397            push acc
+0D00 900767     397            mov dptr, #ani33
+0D03 120087     397            lcall ?Send_Constant_String
+0D06 D0E0       397            pop acc
+0D08 D082       397            pop dpl
+0D0A D083       397            pop dph
+0D0C C002       398            push AR2
+0D0E 7A32       398            mov R2, #50
+0D10 12000E     398            lcall ?Wait_Milli_Seconds
+0D13 D002       398            pop AR2
+0D15 C0E0       399            push acc
+0D17 7401       399            mov a, #1
+0D19 14         399            dec a
+0D1A 120094     399            lcall ?Set_Cursor_1 ; Select column and row
+0D1D D0E0       399            pop acc
+0D1F C083       400            push dph
+0D21 C082       400            push dpl
+0D23 C0E0       400            push acc
+0D25 900635     400            mov dptr, #ani15
+0D28 120087     400            lcall ?Send_Constant_String
+0D2B D0E0       400            pop acc
+0D2D D082       400            pop dpl
+0D2F D083       400            pop dph
+0D31 C0E0       401            push acc
+0D33 7401       401            mov a, #1
+0D35 14         401            dec a
+0D36 120092     401            lcall ?Set_Cursor_2 ; Select column and row
+0D39 D0E0       401            pop acc
+0D3B C083       402            push dph
+0D3D C082       402            push dpl
+0D3F C0E0       402            push acc
+0D41 900756     402            mov dptr, #ani32
+0D44 120087     402            lcall ?Send_Constant_String
+0D47 D0E0       402            pop acc
+0D49 D082       402            pop dpl
+0D4B D083       402            pop dph
+0D4D C002       403            push AR2
+0D4F 7A32       403            mov R2, #50
+0D51 12000E     403            lcall ?Wait_Milli_Seconds
+0D54 D002       403            pop AR2
+0D56 C0E0       404            push acc
+0D58 7401       404            mov a, #1
+0D5A 14         404            dec a
+0D5B 120094     404            lcall ?Set_Cursor_1 ; Select column and row
+0D5E D0E0       404            pop acc
+0D60 C083       405            push dph
+0D62 C082       405            push dpl
+0D64 C0E0       405            push acc
+0D66 900624     405            mov dptr, #ani14
+0D69 120087     405            lcall ?Send_Constant_String
+0D6C D0E0       405            pop acc
+0D6E D082       405            pop dpl
+0D70 D083       405            pop dph
+0D72 C0E0       406            push acc
+0D74 7401       406            mov a, #1
+0D76 14         406            dec a
+0D77 120092     406            lcall ?Set_Cursor_2 ; Select column and row
+0D7A D0E0       406            pop acc
+0D7C C083       407            push dph
+0D7E C082       407            push dpl
+0D80 C0E0       407            push acc
+0D82 900745     407            mov dptr, #ani31
+0D85 120087     407            lcall ?Send_Constant_String
+0D88 D0E0       407            pop acc
+0D8A D082       407            pop dpl
+0D8C D083       407            pop dph
+0D8E C002       408            push AR2
+0D90 7A32       408            mov R2, #50
+0D92 12000E     408            lcall ?Wait_Milli_Seconds
+0D95 D002       408            pop AR2
+0D97 C0E0       409            push acc
+0D99 7401       409            mov a, #1
+0D9B 14         409            dec a
+0D9C 120094     409            lcall ?Set_Cursor_1 ; Select column and row
+0D9F D0E0       409            pop acc
+0DA1 C083       410            push dph
+0DA3 C082       410            push dpl
+0DA5 C0E0       410            push acc
+0DA7 900613     410            mov dptr, #ani13
+0DAA 120087     410            lcall ?Send_Constant_String
+0DAD D0E0       410            pop acc
+0DAF D082       410            pop dpl
+0DB1 D083       410            pop dph
+0DB3 C0E0       411            push acc
+0DB5 7401       411            mov a, #1
+0DB7 14         411            dec a
+0DB8 120092     411            lcall ?Set_Cursor_2 ; Select column and row
+0DBB D0E0       411            pop acc
+0DBD C083       412            push dph
+0DBF C082       412            push dpl
+0DC1 C0E0       412            push acc
+0DC3 900734     412            mov dptr, #ani30
+0DC6 120087     412            lcall ?Send_Constant_String
+0DC9 D0E0       412            pop acc
+0DCB D082       412            pop dpl
+0DCD D083       412            pop dph
+0DCF C002       413            push AR2
+0DD1 7A32       413            mov R2, #50
+0DD3 12000E     413            lcall ?Wait_Milli_Seconds
+0DD6 D002       413            pop AR2
+0DD8 C0E0       414            push acc
+0DDA 7401       414            mov a, #1
+0DDC 14         414            dec a
+0DDD 120094     414            lcall ?Set_Cursor_1 ; Select column and row
+0DE0 D0E0       414            pop acc
+0DE2 C083       415            push dph
+0DE4 C082       415            push dpl
+0DE6 C0E0       415            push acc
+0DE8 900602     415            mov dptr, #ani12
+0DEB 120087     415            lcall ?Send_Constant_String
+0DEE D0E0       415            pop acc
+0DF0 D082       415            pop dpl
+0DF2 D083       415            pop dph
+0DF4 C0E0       416            push acc
+0DF6 7401       416            mov a, #1
+0DF8 14         416            dec a
+0DF9 120092     416            lcall ?Set_Cursor_2 ; Select column and row
+0DFC D0E0       416            pop acc
+0DFE C083       417            push dph
+0E00 C082       417            push dpl
+0E02 C0E0       417            push acc
+0E04 900723     417            mov dptr, #ani29
+0E07 120087     417            lcall ?Send_Constant_String
+0E0A D0E0       417            pop acc
+0E0C D082       417            pop dpl
+0E0E D083       417            pop dph
+0E10 C002       418            push AR2
+0E12 7A32       418            mov R2, #50
+0E14 12000E     418            lcall ?Wait_Milli_Seconds
+0E17 D002       418            pop AR2
+0E19 C0E0       419            push acc
+0E1B 7401       419            mov a, #1
+0E1D 14         419            dec a
+0E1E 120094     419            lcall ?Set_Cursor_1 ; Select column and row
+0E21 D0E0       419            pop acc
+0E23 C083       420            push dph
+0E25 C082       420            push dpl
+0E27 C0E0       420            push acc
+0E29 9005F1     420            mov dptr, #ani11
+0E2C 120087     420            lcall ?Send_Constant_String
+0E2F D0E0       420            pop acc
+0E31 D082       420            pop dpl
+0E33 D083       420            pop dph
+0E35 C0E0       421            push acc
+0E37 7401       421            mov a, #1
+0E39 14         421            dec a
+0E3A 120092     421            lcall ?Set_Cursor_2 ; Select column and row
+0E3D D0E0       421            pop acc
+0E3F C083       422            push dph
+0E41 C082       422            push dpl
+0E43 C0E0       422            push acc
+0E45 900712     422            mov dptr, #ani28
+0E48 120087     422            lcall ?Send_Constant_String
+0E4B D0E0       422            pop acc
+0E4D D082       422            pop dpl
+0E4F D083       422            pop dph
+0E51 C002       423            push AR2
+0E53 7A32       423            mov R2, #50
+0E55 12000E     423            lcall ?Wait_Milli_Seconds
+0E58 D002       423            pop AR2
+0E5A C0E0       424            push acc
+0E5C 7401       424            mov a, #1
+0E5E 14         424            dec a
+0E5F 120094     424            lcall ?Set_Cursor_1 ; Select column and row
+0E62 D0E0       424            pop acc
+0E64 C083       425            push dph
+0E66 C082       425            push dpl
+0E68 C0E0       425            push acc
+0E6A 9005E0     425            mov dptr, #ani10
+0E6D 120087     425            lcall ?Send_Constant_String
+0E70 D0E0       425            pop acc
+0E72 D082       425            pop dpl
+0E74 D083       425            pop dph
+0E76 C0E0       426            push acc
+0E78 7401       426            mov a, #1
+0E7A 14         426            dec a
+0E7B 120092     426            lcall ?Set_Cursor_2 ; Select column and row
+0E7E D0E0       426            pop acc
+0E80 C083       427            push dph
+0E82 C082       427            push dpl
+0E84 C0E0       427            push acc
+0E86 900701     427            mov dptr, #ani27
+0E89 120087     427            lcall ?Send_Constant_String
+0E8C D0E0       427            pop acc
+0E8E D082       427            pop dpl
+0E90 D083       427            pop dph
+0E92 C002       428            push AR2
+0E94 7A32       428            mov R2, #50
+0E96 12000E     428            lcall ?Wait_Milli_Seconds
+0E99 D002       428            pop AR2
+0E9B C0E0       429            push acc
+0E9D 7401       429            mov a, #1
+0E9F 14         429            dec a
+0EA0 120094     429            lcall ?Set_Cursor_1 ; Select column and row
+0EA3 D0E0       429            pop acc
+0EA5 C083       430            push dph
+0EA7 C082       430            push dpl
+0EA9 C0E0       430            push acc
+0EAB 9005CF     430            mov dptr, #ani9
+0EAE 120087     430            lcall ?Send_Constant_String
+0EB1 D0E0       430            pop acc
+0EB3 D082       430            pop dpl
+0EB5 D083       430            pop dph
+0EB7 C0E0       431            push acc
+0EB9 7401       431            mov a, #1
+0EBB 14         431            dec a
+0EBC 120092     431            lcall ?Set_Cursor_2 ; Select column and row
+0EBF D0E0       431            pop acc
+0EC1 C083       432            push dph
+0EC3 C082       432            push dpl
+0EC5 C0E0       432            push acc
+0EC7 9006F0     432            mov dptr, #ani26
+0ECA 120087     432            lcall ?Send_Constant_String
+0ECD D0E0       432            pop acc
+0ECF D082       432            pop dpl
+0ED1 D083       432            pop dph
+0ED3 C002       433            push AR2
+0ED5 7A32       433            mov R2, #50
+0ED7 12000E     433            lcall ?Wait_Milli_Seconds
+0EDA D002       433            pop AR2
+0EDC C0E0       434            push acc
+0EDE 7401       434            mov a, #1
+0EE0 14         434            dec a
+0EE1 120094     434            lcall ?Set_Cursor_1 ; Select column and row
+0EE4 D0E0       434            pop acc
+0EE6 C083       435            push dph
+0EE8 C082       435            push dpl
+0EEA C0E0       435            push acc
+0EEC 9005BE     435            mov dptr, #ani8
+0EEF 120087     435            lcall ?Send_Constant_String
+0EF2 D0E0       435            pop acc
+0EF4 D082       435            pop dpl
+0EF6 D083       435            pop dph
+0EF8 C0E0       436            push acc
+0EFA 7401       436            mov a, #1
+0EFC 14         436            dec a
+0EFD 120092     436            lcall ?Set_Cursor_2 ; Select column and row
+0F00 D0E0       436            pop acc
+0F02 C083       437            push dph
+0F04 C082       437            push dpl
+0F06 C0E0       437            push acc
+0F08 9006DF     437            mov dptr, #ani25
+0F0B 120087     437            lcall ?Send_Constant_String
+0F0E D0E0       437            pop acc
+0F10 D082       437            pop dpl
+0F12 D083       437            pop dph
+0F14 C002       438            push AR2
+0F16 7A32       438            mov R2, #50
+0F18 12000E     438            lcall ?Wait_Milli_Seconds
+0F1B D002       438            pop AR2
+0F1D C0E0       439            push acc
+0F1F 7401       439            mov a, #1
+0F21 14         439            dec a
+0F22 120094     439            lcall ?Set_Cursor_1 ; Select column and row
+0F25 D0E0       439            pop acc
+0F27 C083       440            push dph
+0F29 C082       440            push dpl
+0F2B C0E0       440            push acc
+0F2D 9005AD     440            mov dptr, #ani7
+0F30 120087     440            lcall ?Send_Constant_String
+0F33 D0E0       440            pop acc
+0F35 D082       440            pop dpl
+0F37 D083       440            pop dph
+0F39 C0E0       441            push acc
+0F3B 7401       441            mov a, #1
+0F3D 14         441            dec a
+0F3E 120092     441            lcall ?Set_Cursor_2 ; Select column and row
+0F41 D0E0       441            pop acc
+0F43 C083       442            push dph
+0F45 C082       442            push dpl
+0F47 C0E0       442            push acc
+0F49 9006CE     442            mov dptr, #ani24
+0F4C 120087     442            lcall ?Send_Constant_String
+0F4F D0E0       442            pop acc
+0F51 D082       442            pop dpl
+0F53 D083       442            pop dph
+0F55 C002       443            push AR2
+0F57 7A32       443            mov R2, #50
+0F59 12000E     443            lcall ?Wait_Milli_Seconds
+0F5C D002       443            pop AR2
+0F5E C0E0       444            push acc
+0F60 7401       444            mov a, #1
+0F62 14         444            dec a
+0F63 120094     444            lcall ?Set_Cursor_1 ; Select column and row
+0F66 D0E0       444            pop acc
+0F68 C083       445            push dph
+0F6A C082       445            push dpl
+0F6C C0E0       445            push acc
+0F6E 90059C     445            mov dptr, #ani6
+0F71 120087     445            lcall ?Send_Constant_String
+0F74 D0E0       445            pop acc
+0F76 D082       445            pop dpl
+0F78 D083       445            pop dph
+0F7A C0E0       446            push acc
+0F7C 7401       446            mov a, #1
+0F7E 14         446            dec a
+0F7F 120092     446            lcall ?Set_Cursor_2 ; Select column and row
+0F82 D0E0       446            pop acc
+0F84 C083       447            push dph
+0F86 C082       447            push dpl
+0F88 C0E0       447            push acc
+0F8A 9006BD     447            mov dptr, #ani23
+0F8D 120087     447            lcall ?Send_Constant_String
+0F90 D0E0       447            pop acc
+0F92 D082       447            pop dpl
+0F94 D083       447            pop dph
+0F96 C002       448            push AR2
+0F98 7A32       448            mov R2, #50
+0F9A 12000E     448            lcall ?Wait_Milli_Seconds
+0F9D D002       448            pop AR2
+0F9F C0E0       449            push acc
+0FA1 7401       449            mov a, #1
+0FA3 14         449            dec a
+0FA4 120094     449            lcall ?Set_Cursor_1 ; Select column and row
+0FA7 D0E0       449            pop acc
+0FA9 C083       450            push dph
+0FAB C082       450            push dpl
+0FAD C0E0       450            push acc
+0FAF 90058B     450            mov dptr, #ani5
+0FB2 120087     450            lcall ?Send_Constant_String
+0FB5 D0E0       450            pop acc
+0FB7 D082       450            pop dpl
+0FB9 D083       450            pop dph
+0FBB C0E0       451            push acc
+0FBD 7401       451            mov a, #1
+0FBF 14         451            dec a
+0FC0 120092     451            lcall ?Set_Cursor_2 ; Select column and row
+0FC3 D0E0       451            pop acc
+0FC5 C083       452            push dph
+0FC7 C082       452            push dpl
+0FC9 C0E0       452            push acc
+0FCB 9006AC     452            mov dptr, #ani22
+0FCE 120087     452            lcall ?Send_Constant_String
+0FD1 D0E0       452            pop acc
+0FD3 D082       452            pop dpl
+0FD5 D083       452            pop dph
+0FD7 C002       453            push AR2
+0FD9 7A32       453            mov R2, #50
+0FDB 12000E     453            lcall ?Wait_Milli_Seconds
+0FDE D002       453            pop AR2
+0FE0 C0E0       454            push acc
+0FE2 7401       454            mov a, #1
+0FE4 14         454            dec a
+0FE5 120094     454            lcall ?Set_Cursor_1 ; Select column and row
+0FE8 D0E0       454            pop acc
+0FEA C083       455            push dph
+0FEC C082       455            push dpl
+0FEE C0E0       455            push acc
+0FF0 90057A     455            mov dptr, #ani4
+0FF3 120087     455            lcall ?Send_Constant_String
+0FF6 D0E0       455            pop acc
+0FF8 D082       455            pop dpl
+0FFA D083       455            pop dph
+0FFC C0E0       456            push acc
+0FFE 7401       456            mov a, #1
+1000 14         456            dec a
+1001 120092     456            lcall ?Set_Cursor_2 ; Select column and row
+1004 D0E0       456            pop acc
+1006 C083       457            push dph
+1008 C082       457            push dpl
+100A C0E0       457            push acc
+100C 90069B     457            mov dptr, #ani21
+100F 120087     457            lcall ?Send_Constant_String
+1012 D0E0       457            pop acc
+1014 D082       457            pop dpl
+1016 D083       457            pop dph
+1018 C002       458            push AR2
+101A 7A32       458            mov R2, #50
+101C 12000E     458            lcall ?Wait_Milli_Seconds
+101F D002       458            pop AR2
+1021 C0E0       459            push acc
+1023 7401       459            mov a, #1
+1025 14         459            dec a
+1026 120094     459            lcall ?Set_Cursor_1 ; Select column and row
+1029 D0E0       459            pop acc
+102B C083       460            push dph
+102D C082       460            push dpl
+102F C0E0       460            push acc
+1031 900569     460            mov dptr, #ani3
+1034 120087     460            lcall ?Send_Constant_String
+1037 D0E0       460            pop acc
+1039 D082       460            pop dpl
+103B D083       460            pop dph
+103D C0E0       461            push acc
+103F 7401       461            mov a, #1
+1041 14         461            dec a
+1042 120092     461            lcall ?Set_Cursor_2 ; Select column and row
+1045 D0E0       461            pop acc
+1047 C083       462            push dph
+1049 C082       462            push dpl
+104B C0E0       462            push acc
+104D 90068A     462            mov dptr, #ani20
+1050 120087     462            lcall ?Send_Constant_String
+1053 D0E0       462            pop acc
+1055 D082       462            pop dpl
+1057 D083       462            pop dph
+1059 C002       463            push AR2
+105B 7A32       463            mov R2, #50
+105D 12000E     463            lcall ?Wait_Milli_Seconds
+1060 D002       463            pop AR2
+1062 C0E0       464            push acc
+1064 7401       464            mov a, #1
+1066 14         464            dec a
+1067 120094     464            lcall ?Set_Cursor_1 ; Select column and row
+106A D0E0       464            pop acc
+106C C083       465            push dph
+106E C082       465            push dpl
+1070 C0E0       465            push acc
+1072 900558     465            mov dptr, #ani2
+1075 120087     465            lcall ?Send_Constant_String
+1078 D0E0       465            pop acc
+107A D082       465            pop dpl
+107C D083       465            pop dph
+107E C0E0       466            push acc
+1080 7401       466            mov a, #1
+1082 14         466            dec a
+1083 120092     466            lcall ?Set_Cursor_2 ; Select column and row
+1086 D0E0       466            pop acc
+1088 C083       467            push dph
+108A C082       467            push dpl
+108C C0E0       467            push acc
+108E 900679     467            mov dptr, #ani19
+1091 120087     467            lcall ?Send_Constant_String
+1094 D0E0       467            pop acc
+1096 D082       467            pop dpl
+1098 D083       467            pop dph
+109A C002       468            push AR2
+109C 7A32       468            mov R2, #50
+109E 12000E     468            lcall ?Wait_Milli_Seconds
+10A1 D002       468            pop AR2
+10A3 C0E0       469            push acc
+10A5 7401       469            mov a, #1
+10A7 14         469            dec a
+10A8 120094     469            lcall ?Set_Cursor_1 ; Select column and row
+10AB D0E0       469            pop acc
+10AD C083       470            push dph
+10AF C082       470            push dpl
+10B1 C0E0       470            push acc
+10B3 900547     470            mov dptr, #ani1
+10B6 120087     470            lcall ?Send_Constant_String
+10B9 D0E0       470            pop acc
+10BB D082       470            pop dpl
+10BD D083       470            pop dph
+10BF C0E0       471            push acc
+10C1 7401       471            mov a, #1
+10C3 14         471            dec a
+10C4 120092     471            lcall ?Set_Cursor_2 ; Select column and row
+10C7 D0E0       471            pop acc
+10C9 C083       472            push dph
+10CB C082       472            push dpl
+10CD C0E0       472            push acc
+10CF 900668     472            mov dptr, #ani18
+10D2 120087     472            lcall ?Send_Constant_String
+10D5 D0E0       472            pop acc
+10D7 D082       472            pop dpl
+10D9 D083       472            pop dph
+10DB C002       473            push AR2
+10DD 7A32       473            mov R2, #50
+10DF 12000E     473            lcall ?Wait_Milli_Seconds
+10E2 D002       473            pop AR2   
+10E4            474   
+10E4            475   Forever:
+10E4 75817F     476       mov SP, #7FH ; Set the stack pointer to the begining of idata
+10E7 12031F     477       lcall InitSerialPort
+10EA            478        
+10EA            479       ;GUI 1
+10EA C0E0       480            push acc
+10EC 7401       480            mov a, #1
+10EE 14         480            dec a
+10EF 120094     480            lcall ?Set_Cursor_1 ; Select column and row
+10F2 D0E0       480            pop acc
+10F4 C083       481            push dph
+10F6 C082       481            push dpl
+10F8 C0E0       481            push acc
+10FA 9004EC     481            mov dptr, #Celsius_mess
+10FD 120087     481            lcall ?Send_Constant_String
+1100 D0E0       481            pop acc
+1102 D082       481            pop dpl
+1104 D083       481            pop dph
+1106            482       
+1106 C0E0       483            push acc
+1108 7401       483            mov a, #1
+110A 14         483            dec a
+110B 120092     483            lcall ?Set_Cursor_2 ; Select column and row
+110E D0E0       483            pop acc
+1110 C083       484            push dph
+1112 C082       484            push dpl
+1114 C0E0       484            push acc
+1116 9004FE     484            mov dptr, #F_mess
+1119 120087     484            lcall ?Send_Constant_String
+111C D0E0       484            pop acc
+111E D082       484            pop dpl
+1120 D083       484            pop dph
+1122            485       
+1122            486   loop_a:   
+1122 C2A0       487            clr CE_ADC ;sensor = low
+1124 7801       488            mov R0, #00000001B ; Start bit:1
+1126 12033C     489            lcall DO_SPI_G
+1129 7880       490            mov R0, #10000000B ; Single ended, read channel 0
+112B 12033C     491            lcall DO_SPI_G
+112E E9         492            mov a, R1          ; R1 contains bits 8 and 9
+112F 5403       493            anl a, #00000011B  ; We need only the two least significant bits
+1131 F531       494            mov Result+1, a    ; Save result high.
+1133 7855       495            mov R0, #55H ; It doesn't matter what we transmit...
+1135 12033C     496            lcall DO_SPI_G
+1138 8930       497            mov Result, R1     ; R1 contains bits 0 to 7.  Save result low.
+113A D2A0       498            setb CE_ADC             ;switch on the temp sensor
+113C            499            
+113C            500            
+113C            501            ;Read_ADC_Channel(6)
+113C 8000       502            sjmp calculation_cel
+113E            503            
+113E            504            
+113E            505            
+113E            506            calculation_cel:
+113E 1203E7     507            lcall Calculation1
+1141 8000       508            sjmp convert
+1143            509            
+1143            510            
+1143            511            ; conversion
+1143            512            convert:
+1143 1200AF     513            lcall hex2bcd
+1146 8000       514            sjmp button_click
+1148            515            
+1148            516            
+1148            517            button_click:
+1148 E53A       518            mov a, bcd+0
+114A B49905     519            cjne a, #0x99, Button
+114D 753A00     520            mov bcd+0, #0x00 ; reset to 0
+1150 801F       521            sjmp checking
+1152            522            
+1152            523            Button:
+1152 D280       524            setb ONOFF
+1154 208011     525            jb ONOFF, increase
+1157 C002       526            push AR2
+1159 7A32       526            mov R2, #50
+115B 12000E     526            lcall ?Wait_Milli_Seconds
+115E D002       526            pop AR2
+1160 208005     527            jb ONOFF, increase
+1163 3080FD     528            jnb ONOFF, $
+1166 8009       529            sjmp checking
+1168            530            
+1168            531            increase:
+1168 E53A       532            mov a, bcd+0
+116A 2401       533            add a, #1
+116C D4         534            da a
+116D F53A       535            mov bcd+0, a
+116F 8000       536            sjmp checking
+1171            537            
+1171            538            checking:
+1171 D291       539            setb SOUND_OUT
+1173 E53A       540            mov a, bcd+0
+1175 75F032     541            mov b, #0x32 ;lower bound
+1178 B5F002     542            cjne a, b, no_ring ;check if greater/ equal to 
+117B            543            ;mov b, #0x29 ;upper bound
+117B            544            ;cjne a, b, no_ring
+117B 8004       545            sjmp ring
+117D            546            
+117D            547            no_ring:
+117D C201       548            clr Alarm_flag
+117F 8004       549            sjmp check3
+1181            550            
+1181            551            ring:
+1181 D201       552            setb Alarm_flag
+1183 8000       553            sjmp check3
+1185            554            
+1185            555            check3:
+1185 120488     556            lcall Ring_or_not
+1188 8000       557            sjmp Display_num
+118A            558    
+118A            559            
+118A            560            Display_num:
+118A 120355     561            lcall Display_10_digit_BCD01
+118D            562            
+118D            563            ;display in putty
+118D C000       564             push ar0
+118F A83A       564             mov r0,bcd+0
+1191 1203A2     564             lcall ?Send_BCD
+1194 D000       564             pop ar0
+1196            565   
+1196            566            ;calculation for F
+1196 120421     567            lcall Calculation2
+1199 1200AF     568            lcall hex2bcd
+119C 120369     569            lcall Display_10_digit_BCD02
+119F            570            
+119F            571            Delay_before_loop_again:
+119F 1203C2     572            lcall Delay
+11A2            573   
+11A2            574            
+11A2 0210E4     575            ljmp Forever
+11A5            576       
+11A5            577     
+11A5            578   END
