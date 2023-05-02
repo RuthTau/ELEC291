@@ -1,0 +1,146 @@
+0000              1   ; Configure the default AT89LP51RC2 in fast mode with biderectional ports
+0000              2   
+                  4   $LIST
+0000              6   
+                  7   loadbyte mac
+                  8       mov dptr, #%0
+                  9       mov a, #%1
+                 10       movx @dptr, a
+                 11   endmac
+0000             12   
+0000             13   org 0000H
+0000 020010      14       ljmp myprogram
+0003             15   
+0003             16   ; When using a 22.1184MHz crystal in fast mode
+0003             17   ; one cycle takes 1.0/22.1184MHz = 45.21123 ns
+0003             18   ; In compatibility mode, this takes 45.21123 ns * 12 = 540.4 ns
+0003             19   WaitHalfSec:
+0003 7A59        20       mov R2, #89
+0005 79FA        21   L3: mov R1, #250
+0007 7814        22   L2: mov R0, #166/8
+0009 D8FE        23   L1: djnz R0, L1 ; 3 cycles->3*45.21123ns*166=22.51519us
+000B D9FA        24       djnz R1, L2 ; 22.51519us*250=5.629ms
+000D DAF6        25       djnz R2, L3 ; 5.629ms*89=0.5s (approximately)
+000F 22          26       ret
+0010             27   
+0010             28   myprogram:
+0010 75817F      29       mov SP, #7FH
+0013 75C600      30       mov P3M0, #0 ; Configure P3 in bidirectional mode
+0016 75C700      31       mov P3M1, #0 ; Configure P3 in bidirectional mode
+0019             32   
+0019             33            ; Configure the 'fuses' to run in fast mode.  This becomes
+0019             34            ; effective only after the next power cycle.
+0019             35            
+0019             36       ; Load the page buffer with the fuse values
+0019 75D108      37       mov FCON, #0x08 ; Page Buffer Mapping Enabled (FPS = 1)
+001C             38   
+001C             39       ; 00 – 01H Clock Source A – CSA[0:1]
+001C 900000      40       mov dptr, #0x00
+001F 74FF        40       mov a, #0xff
+0021 F0          40       movx @dptr, a ; FFh FFh High Speed Crystal Oscillator on XTAL1A/XTAL2A (XTAL)
+0022 900001      41       mov dptr, #0x01
+0025 74FF        41       mov a, #0xff
+0027 F0          41       movx @dptr, a
+0028             42   
+0028             43       ; 02 – 03H Start-up Time – SUT[0:1]
+0028 900002      44       mov dptr, #0x02
+002B 74FF        44       mov a, #0xff
+002D F0          44       movx @dptr, a ; FFh FFh 16 ms (XTAL)
+002E 900003      45       mov dptr, #0x03
+0031 74FF        45       mov a, #0xff
+0033 F0          45       movx @dptr, a
+0034             46   
+0034             47       ; 04H Bootloader Jump Bit 
+0034 900004      48       mov dptr, #0x04
+0037 74FF        48       mov a, #0xff
+0039 F0          48       movx @dptr, a ; FFh: Reset to user application at 0000H
+003A             49   
+003A             50       ; 05H External RAM Enable
+003A 900005      51       mov dptr, #0x05
+003D 74FF        51       mov a, #0xff
+003F F0          51       movx @dptr, a ; FFh: External RAM enabled at reset (EXTRAM = 1)
+0040             52   
+0040             53       ; 06H Compatibility Mode
+0040 900006      54       mov dptr, #0x06
+0043 7400        54       mov a, #0x00
+0045 F0          54       movx @dptr, a ; 00h: CPU functions is single-cycle Fast mode
+0046             55       
+0046             56       ; 07H ISP Enable
+0046 900007      57       mov dptr, #0x07
+0049 74FF        57       mov a, #0xff
+004B F0          57       movx @dptr, a ; FFh: In-System Programming Enabled
+004C             58       
+004C             59       ; 08H X1/X2 Mode
+004C 900008      60       mov dptr, #0x08
+004F 7400        60       mov a, #0x00
+0051 F0          60       movx @dptr, a ; 00h: X2 Mode (System clock is not divided-by-two)
+0052             61   
+0052             62       ; 09H OCD Enable
+0052 900009      63       mov dptr, #0x09
+0055 74FF        63       mov a, #0xff
+0057 F0          63       movx @dptr, a ; FFh: On-Chip Debug is Disabled
+0058             64   
+0058             65       ; 0AH User Signature Programming
+0058 90000A      66       mov dptr, #0x0A
+005B 74FF        66       mov a, #0xff
+005D F0          66       movx @dptr, a ; FFh: Programming of User Signature Disabled
+005E             67   
+005E             68       ; 0BH Tristate Ports
+005E 90000B      69       mov dptr, #0x0B
+0061 7400        69       mov a, #0x00
+0063 F0          69       movx @dptr, a ; 00h: I/O Ports start in quasi-bidirectional mode after reset
+0064             70   
+0064             71       ; 0CH Reserved
+0064 90000C      72       mov dptr, #0x0C
+0067 74FF        72       mov a, #0xff
+0069 F0          72       movx @dptr, a
+006A             73       
+006A             74       ; 0D – 0EH Low Power Mode – LPM[0:1]
+006A 90000D      75       mov dptr, #0x0D
+006D 74FF        75       mov a, #0xff
+006F F0          75       movx @dptr, a ; FFh: Low Power Mode
+0070 90000E      76       mov dptr, #0x0E
+0073 74FF        76       mov a, #0xff
+0075 F0          76       movx @dptr, a
+0076             77       
+0076             78       ; 0FH R1 Enable
+0076 90000F      79       mov dptr, #0x0F
+0079 74FF        79       mov a, #0xff
+007B F0          79       movx @dptr, a ; FFh: 5 Mohm resistor on XTAL1A Disabled
+007C             80       
+007C             81       ; 10H Oscillator Select
+007C 900010      82       mov dptr, #0x10
+007F 74FF        82       mov a, #0xff
+0081 F0          82       movx @dptr, a ; FFh: Boot from Oscillator A
+0082             83       
+0082             84       ; 11 – 12h Clock Source B – CSB[0:1]
+0082 900011      85       mov dptr, #0x11
+0085 74FF        85       mov a, #0xff
+0087 F0          85       movx @dptr, a ; FFh: Low Frequency Crystal Oscillator on XTAL1B/XTAL2B (XTAL)
+0088 900012      86       mov dptr, #0x12
+008B 74FF        86       mov a, #0xff
+008D F0          86       movx @dptr, a
+008E             87       
+008E 75D100      88       mov FCON, #0x00 ; Page Buffer Mapping Disabled (FPS = 0)
+0091             89       
+0091 43D240      90       orl EECON, #0b01000000 ; Enable auto-erase on next write sequence  
+0094             91       ; Launch the programming by writing the data sequence 54H followed
+0094             92       ; by A4H to FCON register.
+0094 75D154      93       mov FCON, #0x54
+0097 75D1A4      94       mov FCON, #0xA4
+009A             95       ; If launched from internal memory, the CPU idles until programming completes.
+009A             96   loop:    
+009A E5D1        97       mov a, FCON
+009C 20E0FB      98       jb acc.0, loop
+009F             99   
+009F 75D100     100       mov FCON, #0x00 ; Page Buffer Mapping Disabled (FPS = 0)
+00A2 53D2BF     101            anl EECON, #0b10111111 ; Disable auto-erase
+00A5            102       
+00A5            103       ; 'blink' LED to indicate sequence is complete.  To switch to fast mode
+00A5            104       ; a power cycle is required.   
+00A5            105   M0:
+00A5 B2B7       106       cpl P3.7
+00A7 120003     107       lcall WaitHalfSec
+00AA 80F9       108       sjmp M0
+00AC            109   
+00AC            110   END
