@@ -1,0 +1,2875 @@
+0000              1   
+                  3   $LIST
+0000              5   
+0000              6   CLK           EQU 22118400 ; Microcontroller system crystal frequency in Hz
+0000              7   
+0000              8   ;Timer 2 for checking the amount of time that has passed
+0000              9   TIMER2_RATE   EQU 1000     ; 1000Hz, for a timer tick of 1ms
+0000             10   TIMER2_RELOAD EQU ((65536-(CLK/TIMER2_RATE)))
+0000             11   
+0000             12   SHIFT_PB equ P0.6 ;originally 2.4
+0000             13   ;TEMP_SOAK_PB equ P4.5
+0000             14   TIME_SOAK_PB equ P0.3
+0000             15   TEMP_REFL_PB equ P0.2
+0000             16   TIME_REFL_PB equ P0.0
+0000             17   TEMP_SOAK_PB equ P0.5    
+0000             18   PWM_OUTPUT   equ P1.4 ;dupliacted pin for p3.4
+0000             19   START        equ P0.7
+0000             20   DEBUG         equ P0.1
+0000             21   
+0000             22   
+0000             23   TIMER1_RATE    EQU 22050     ; 22050Hz is the sampling rate of the wav file we are playing
+0000             24   TIMER1_RELOAD  EQU 0x10000-(CLK/TIMER1_RATE)
+0000             25   BAUDRATE       EQU 115200
+0000             26   BRG_VAL        EQU (0x100-(CLK/(16*BAUDRATE)))
+0000             27   
+0000             28   SPEAKER   EQU P2.6
+0000             29   
+0000             30   ;pins used fo rSPI
+0000             31   FLASH_CE  EQU  P2.5
+0000             32   MY_MOSI   EQU  P2.4 
+0000             33   MY_MISO   EQU  P1.6
+0000             34   MY_SCLK   EQU  P2.7
+0000             35   
+0000             36   
+0000             37   ; Commands supported by the SPI flash memory according to the datasheet
+0000             38   WRITE_ENABLE     EQU 0x06  ; Address:0 Dummy:0 Num:0
+0000             39   WRITE_DISABLE    EQU 0x04  ; Address:0 Dummy:0 Num:0
+0000             40   READ_STATUS      EQU 0x05  ; Address:0 Dummy:0 Num:1 to infinite
+0000             41   READ_BYTES       EQU 0x03  ; Address:3 Dummy:0 Num:1 to infinite
+0000             42   READ_SILICON_ID  EQU 0xab  ; Address:0 Dummy:3 Num:1 to infinite
+0000             43   FAST_READ        EQU 0x0b  ; Address:3 Dummy:1 Num:1 to infinite
+0000             44   WRITE_STATUS     EQU 0x01  ; Address:0 Dummy:0 Num:1
+0000             45   WRITE_BYTES      EQU 0x02  ; Address:3 Dummy:0 Num:1 to 256
+0000             46   ERASE_ALL        EQU 0xc7  ; Address:0 Dummy:0 Num:0
+0000             47   ERASE_BLOCK      EQU 0xd8  ; Address:3 Dummy:0 Num:0
+0000             48   READ_DEVICE_ID   EQU 0x9f  ; Address:0 Dummy:2 Num:1 to infinite
+0000             49   
+0000             50   ;SPI pins used for MCP3008 ADC
+0000             51   CE_ADC            EQU  P2.0
+0000             52   MY_MOSI_MCP3008   EQU  P2.1 
+0000             53   MY_MISO_MCP3008   EQU  P1.3
+0000             54   MY_SCLK_MCP3008   EQU  P1.2 
+0000             55   
+0000             56   
+0000             57   LCD_RS equ P3.2
+0000             58   LCD_E  equ P3.3
+0000             59   LCD_D4 equ P3.4
+0000             60   LCD_D5 equ P3.5
+0000             61   LCD_D6 equ P3.6
+0000             62   LCD_D7 equ P3.7
+0000             63   
+0000             64   
+0000             65   
+0000             66   org 0x0000
+0000 020D52      67            ljmp main
+0003             68            
+0003             69   ; Timer/Counter 0 overflow interrupt vector
+000B             70   org 0x000B
+000B 32          71            reti ;ljmp Timer0_ISR
+000C             72            
+001B             73   org 0x001B ; Timer/Counter 1 overflow interrupt vector. Used in this code to replay the wave file.
+001B 02034A      74            ljmp Timer1_ISR
+001E             75            
+001E             76   ; Timer/Counter 2 overflow interrupt vector
+002B             77   org 0x002B
+002B 020459      78            ljmp Timer2_ISR         
+002E             79   
+002E             80   ;variables
+0030             81   dseg at 30H
+0030             82   w:   ds 3 ; 24-bit play counter.  Decremented in Timer 1 ISR.
+0033             83   time_soak: ds 1
+0034             84   time_refl: ds 1
+0035             85   temp_soak: ds 1
+0036             86   temp_refl: ds 1
+0037             87   time_soak_count: ds 1
+0038             88   time_refl_count: ds 1
+0039             89   ;counter: ds 1
+0039             90   temp: ds 4
+003D             91   pwm: ds 2
+003F             92   five_second_counter: ds 1
+0040             93   seconds: ds 1
+0041             94   Count1ms: ds 2   
+0043             95   x:   ds 4
+0047             96   y:   ds 4
+004B             97   bcd: ds 5
+0050             98   result: ds 2
+0052             99   
+0052            100   
+0052            101   
+0052            102   ; In the 8051 we have variables that are 1-bit in size.  We can use the setb, clr, jb, and jnb
+0052            103   ; instructions with these variables.  This is how you define a 1-bit variable:
+0000            104   bseg
+0000            105   half_seconds_flag: dbit 1 ; Set to one in the ISR every time 500 ms had passed
+0001            106   state0flag: dbit 1
+0002            107   state1flag: dbit 1
+0003            108   state2flag: dbit 1
+0004            109   state3flag: dbit 1
+0005            110   state4flag: dbit 1
+0006            111   state5flag: dbit 1
+0007            112   five_second_flag: dbit 1
+0008            113   done_playing_flag: dbit 1
+0009            114   mf: dbit 1 
+000A            115   one_second_flag: dbit 1
+000B            116   
+                546   $LIST
+                119   	$LIST
+034A            121   
+034A            122   cseg
+034A            123   
+034A            124   ;-------------------------------------;
+034A            125   ; ISR for Timer 1.  Used to playback  ;
+034A            126   ; the WAV file stored in the SPI      ;
+034A            127   ; flash memory.                       ;
+034A            128   ;-------------------------------------;
+034A            129   Timer1_ISR:
+034A            130            ; The registers used in the ISR must be saved in the stack
+034A C0E0       131            push acc
+034C C0D0       132            push psw
+034E            133            
+034E            134            ; Check if the play counter is zero.  If so, stop playing sound.
+034E E530       135            mov a, w+0
+0350 4531       136            orl a, w+1
+0352 4532       137            orl a, w+2
+0354 601A       138            jz stop_playing
+0356            139            
+0356            140            ; Decrement play counter 'w'.  In this implementation 'w' is a 24-bit counter.
+0356 74FF       141            mov a, #0xff
+0358 1530       142            dec w+0
+035A B53007     143            cjne a, w+0, keep_playing
+035D 1531       144            dec w+1
+035F B53102     145            cjne a, w+1, keep_playing
+0362 1532       146            dec w+2
+0364            147            
+0364            148   keep_playing:
+0364 D2A6       149            setb SPEAKER
+0366 120381     150            lcall Send_SPI ; Read the next byte from the SPI Flash...
+0369            151            ;mov P0, a ; WARNING: Remove this if not using an external DAC to use the pins of P0 as GPIO
+0369            152            ;add a, #0x80
+0369 F5AD       153            mov DADH, a ; Output to DAC. DAC output is pin P2.3
+036B 43A440     154            orl DADC, #0b_0100_0000 ; Start DAC by setting GO/BSY=1
+036E 800C       155            sjmp Timer1_ISR_Done
+0370            156   
+0370            157   stop_playing:
+0370 C28E       158            clr TR1 ; Stop timer 1
+0372 D2A5       159            setb FLASH_CE  ; Disable SPI Flash
+0374 C2A6       160            clr SPEAKER ; Turn off speaker.  Removes hissing noise when not playing sound.
+0376 75AD80     161            mov DADH, #0x80 ; middle of range
+0379 43A440     162            orl DADC, #0b_0100_0000 ; Start DAC by setting GO/BSY=1
+037C            163   
+037C            164   Timer1_ISR_Done:         
+037C D0D0       165            pop psw
+037E D0E0       166            pop acc
+0380 32         167            reti
+0381            168   
+0381            169   ;---------------------------------;
+0381            170   ; Sends AND receives a byte via   ;
+0381            171   ; SPI.                            ;
+0381            172   ;---------------------------------;
+0381            173   Send_SPI:
+                174       SPIBIT MAC
+                175           ; Send/Receive bit %0
+                176           rlc a
+                177           mov MY_MOSI, c
+                178           setb MY_SCLK
+                179           mov c, MY_MISO
+                180           clr MY_SCLK
+                181           mov acc.0, c
+                182       ENDMAC
+0381            183   
+0381            184           ; Send/Receive bit 7
+0381 33         184           rlc a
+0382 92A4       184           mov MY_MOSI, c
+0384 D2A7       184           setb MY_SCLK
+0386 A296       184           mov c, MY_MISO
+0388 C2A7       184           clr MY_SCLK
+038A 92E0       184           mov acc.0, c
+038C            185           ; Send/Receive bit 6
+038C 33         185           rlc a
+038D 92A4       185           mov MY_MOSI, c
+038F D2A7       185           setb MY_SCLK
+0391 A296       185           mov c, MY_MISO
+0393 C2A7       185           clr MY_SCLK
+0395 92E0       185           mov acc.0, c
+0397            186           ; Send/Receive bit 5
+0397 33         186           rlc a
+0398 92A4       186           mov MY_MOSI, c
+039A D2A7       186           setb MY_SCLK
+039C A296       186           mov c, MY_MISO
+039E C2A7       186           clr MY_SCLK
+03A0 92E0       186           mov acc.0, c
+03A2            187           ; Send/Receive bit 4
+03A2 33         187           rlc a
+03A3 92A4       187           mov MY_MOSI, c
+03A5 D2A7       187           setb MY_SCLK
+03A7 A296       187           mov c, MY_MISO
+03A9 C2A7       187           clr MY_SCLK
+03AB 92E0       187           mov acc.0, c
+03AD            188           ; Send/Receive bit 3
+03AD 33         188           rlc a
+03AE 92A4       188           mov MY_MOSI, c
+03B0 D2A7       188           setb MY_SCLK
+03B2 A296       188           mov c, MY_MISO
+03B4 C2A7       188           clr MY_SCLK
+03B6 92E0       188           mov acc.0, c
+03B8            189           ; Send/Receive bit 2
+03B8 33         189           rlc a
+03B9 92A4       189           mov MY_MOSI, c
+03BB D2A7       189           setb MY_SCLK
+03BD A296       189           mov c, MY_MISO
+03BF C2A7       189           clr MY_SCLK
+03C1 92E0       189           mov acc.0, c
+03C3            190           ; Send/Receive bit 1
+03C3 33         190           rlc a
+03C4 92A4       190           mov MY_MOSI, c
+03C6 D2A7       190           setb MY_SCLK
+03C8 A296       190           mov c, MY_MISO
+03CA C2A7       190           clr MY_SCLK
+03CC 92E0       190           mov acc.0, c
+03CE            191           ; Send/Receive bit 0
+03CE 33         191           rlc a
+03CF 92A4       191           mov MY_MOSI, c
+03D1 D2A7       191           setb MY_SCLK
+03D3 A296       191           mov c, MY_MISO
+03D5 C2A7       191           clr MY_SCLK
+03D7 92E0       191           mov acc.0, c
+03D9            192   
+03D9 22         193    ret
+03DA            194   
+03DA            195   
+03DA            196   ;---------------------------------;
+03DA            197   ; SPI flash 'write enable'        ;
+03DA            198   ; instruction.                    ;
+03DA            199   ;---------------------------------;
+03DA            200   Enable_Write:
+03DA C2A5       201            clr FLASH_CE
+03DC 7406       202            mov a, #WRITE_ENABLE
+03DE 120381     203            lcall Send_SPI
+03E1 D2A5       204            setb FLASH_CE
+03E3 22         205            ret
+03E4            206   
+03E4            207   
+03E4            208   ;---------------------------------;
+03E4            209   ; This function checks the 'write ;
+03E4            210   ; in progress' bit of the SPI     ;
+03E4            211   ; flash memory.                   ;
+03E4            212   ;---------------------------------;
+03E4            213   Check_WIP:
+03E4 C2A5       214            clr FLASH_CE
+03E6 7405       215            mov a, #READ_STATUS
+03E8 120381     216            lcall Send_SPI
+03EB 7455       217            mov a, #0x55
+03ED 120381     218            lcall Send_SPI
+03F0 D2A5       219            setb FLASH_CE
+03F2 20E0EF     220            jb acc.0, Check_WIP ;  Check the Write in Progress bit
+03F5 22         221            ret
+03F6            222   
+03F6            223   
+03F6            224   
+03F6            225   ; Send a character using the serial port
+03F6            226   putchar:
+03F6 3099FD     227       jnb TI, putchar
+03F9 C299       228       clr TI
+03FB F599       229       mov SBUF, a
+03FD 22         230       ret
+03FE            231       
+03FE            232   
+03FE            233   ;---------------------------------;
+03FE            234   ; Receive a byte from serial port ;
+03FE            235   ;---------------------------------;
+03FE            236   getchar:
+03FE 109802     237            jbc     RI,getchar_L1
+0401 80FB       238            sjmp getchar
+0403            239   getchar_L1:
+0403 E599       240            mov     a,SBUF
+0405 22         241            ret
+0406            242   
+0406            243   
+0406            244   INIT_SPI_FLASH:
+0406 D296       245            setb MY_MISO
+0408 C2A7       246            clr MY_SCLK
+040A            247            
+040A            248   INIT_SPI: 
+040A D293       249       setb MY_MISO_MCP3008    ; Make MISO an input pin 
+040C C292       250       clr MY_SCLK_MCP3008     ; For mode (0,0) SCLK is zero 
+040E 22         251       ret 
+040F            252   DO_SPI_G: 
+040F C0E0       253       push acc 
+0411 7900       254       mov R1, #0      ; Received byte stored in R1 
+0413 7A08       255       mov R2, #8      ; Loop counter (8-bits) 
+0415            256   DO_SPI_G_LOOP: 
+0415 E8         257       mov a, R0       ; Byte to write is in R0 
+0416 33         258       rlc a           ; Carry flag has bit to write 
+0417 F8         259       mov R0, a 
+0418 92A1       260       mov MY_MOSI_MCP3008, c 
+041A D292       261       setb MY_SCLK_MCP3008    ; Transmit 
+041C A293       262       mov c, MY_MISO_MCP3008  ; Read received bit 
+041E E9         263       mov a, R1       ; Save received bit in R1 
+041F 33         264       rlc a 
+0420 F9         265       mov R1, a 
+0421 C292       266       clr MY_SCLK_MCP3008 
+0423 DAF0       267       djnz R2, DO_SPI_G_LOOP 
+0425 D0E0       268       pop acc 
+0427 22         269       ret 
+0428            270   
+0428            271   
+0428            272   
+0428            273   ; Configure the serial port and baud rate
+0428            274   InitSerialPort:
+0428            275       ; Since the reset button bounces, we need to wait a bit before
+0428            276       ; sending messages, otherwise we risk displaying gibberish!
+0428 79DE       277       mov R1, #222
+042A 78A6       278       mov R0, #166
+042C D8FE       279       djnz R0, $   ; 3 cycles->3*45.21123ns*166=22.51519us
+042E D9FA       280       djnz R1, $-4 ; 22.51519us*222=4.998ms
+0430            281       ; Now we can proceed with the configuration
+0430 438780     282            orl     PCON,#0x80
+0433 759852     283            mov     SCON,#0x52
+0436 759B00     284            mov     BDRCON,#0x00
+0439 759AF4     285            mov     BRL,#BRG_VAL
+043C 759B1E     286            mov     BDRCON,#0x1E ; BDRCON=BRR|TBCK|RBCK|SPD;
+043F 22         287   ret
+0440            288   
+0440            289   Timer2_Init:
+0440 75C800     290            mov T2CON, #0 ; Stop timer/counter.  Autoreload mode.
+0443 75CDA9     291            mov TH2, #high(TIMER2_RELOAD)
+0446 75CC9A     292            mov TL2, #low(TIMER2_RELOAD)
+0449            293            ; Set the reload value
+0449 75CBA9     294            mov RCAP2H, #high(TIMER2_RELOAD)
+044C 75CA9A     295            mov RCAP2L, #low(TIMER2_RELOAD)
+044F            296            ; Init One millisecond interrupt counter.  It is a 16-bit variable made with two 8-bit parts
+044F E4         297            clr a
+0450 F541       298            mov Count1ms+0, a
+0452 F542       299            mov Count1ms+1, a
+0454            300            ; Enable the timer and interrupts
+0454 D2AD       301       setb ET2  ; Enable timer 2 interrupt
+0456 D2CA       302       setb TR2  ; Enable timer 2
+0458 22         303            ret
+0459            304   
+0459            305   
+0459            306   ;---------------------------------;
+0459            307   ; ISR for timer 2                 ;
+0459            308   ;---------------------------------;
+0459            309   Timer2_ISR:
+0459 C2CF       310            clr TF2  ; Timer 2 doesn't clear TF2 automatically. Do it in ISR
+045B            311            ;cpl P1.0 ; To check the interrupt rate with oscilloscope. It must be precisely a 1 ms pulse.
+045B            312            
+045B            313            ; The two registers used in the ISR must be saved in the stack
+045B C0E0       314            push acc
+045D C0D0       315            push psw
+045F            316            
+045F            317            ; Increment the 16-bit one mili second counter (16 bits can store up to 35 535, we only need up to 1000 so we're good)
+045F 0541       318            inc Count1ms+0    ; Increment the low 8-bits first (b/c low 8 bits can only store up to 255)
+0461 E541       319            mov a, Count1ms+0 ; If the low 8-bits overflow, then increment high 8-bits
+0463 7002       320            jnz Inc_Done
+0465 0542       321            inc Count1ms+1
+0467            322   
+0467            323   Inc_Done:
+0467 C3         324            clr c 
+0468 E53D       325            mov a, pwm+0
+046A 9541       326            subb a, Count1ms+0
+046C E53E       327            mov a, pwm+1
+046E 9542       328            subb a, Count1ms+1
+0470            329            ; if count1ms > pwm_ratio, carry is set
+0470            330            ;cpl c
+0470 9294       331            mov PWM_OUTPUT, c
+0472            332   
+0472            333   
+0472            334            ; Check if one second has passed
+0472 E541       335            mov a, Count1ms+0
+0474 B4E836     336            cjne a, #low(1000), Timer2_ISR_done ; Warning: this instruction changes the carry flag!
+0477 E542       337            mov a, Count1ms+1
+0479 B40331     338            cjne a, #high(1000), Timer2_ISR_done
+047C            339            
+047C            340            ; 1000 milliseconds have passed.  Set a flag so the main program knows
+047C D20A       341            setb one_second_flag ; Let the main program know one second had passed
+047E            342   
+047E E4         343            clr a
+047F F541       344            mov Count1ms+0, a ; clearing these bc we have determined that we've reached 1000
+0481 F542       345            mov Count1ms+1, a ;clearing
+0483            346   
+0483            347            ;lcall TEMP_JUNCTION
+0483 0540       348            inc seconds
+0485 E53F       349            mov a, five_second_counter
+0487 B40507     350            cjne a, #5, State_Logic ;i dont think we need to compare to flag? just gotta compare to counter
+048A            351            ; otherwise if we ARE at 5 seconds continue on
+048A D207       352            setb five_second_flag ;NEED TO CLR THIS IN THE CODE WHERE YOU GUYS ACTUALLY DO LOGIC W IT
+048C 753F00     353            mov five_second_counter, #0x00
+048F 8002       354            sjmp State_Logic_Skip_Inc
+0491            355            ;carry on
+0491            356   
+0491            357   
+0491            358            ; state 2 is for preheat/soak
+0491 053F       359            State_Logic: inc five_second_counter
+0493 30030B     360            State_Logic_Skip_Inc: jnb state2flag, state4Count ;jump to this line if we don't want to increment 5 sec counter
+0496            361            state2Count:
+0496 E540       362            mov a, seconds
+0498 B53312     363            cjne a, time_soak, Timer2_ISR_done ;CHANGE THIS NUMBER
+049B C203       364            clr state2flag
+049D D204       365            setb state3flag ;triggering flag so we know to change states
+049F 800C       366            sjmp Timer2_ISR_done
+04A1            367   
+04A1            368   
+04A1            369            ; state 4 is for reflow
+04A1 300509     370            state4Count: jnb state4flag, Timer2_ISR_done ;we don't want to increment this if we're not in state 4 either
+04A4 E540       371            mov a, seconds 
+04A6 B53404     372            cjne a, time_refl, Timer2_ISR_done ;CHANGE THIS NUMBER
+04A9 C205       373            clr state4flag
+04AB D206       374            setb state5flag
+04AD            375   
+04AD            376   Timer2_ISR_done:
+04AD D0D0       377            pop psw
+04AF D0E0       378            pop acc
+04B1 32         379            reti
+04B2            380            
+04B2            381   
+04B2            382   SendToLCD:
+04B2 75F064     383   mov b, #100
+04B5 84         384   div ab
+04B6 4430       385   orl a, #0x30 ; Convert hundreds to ASCII
+04B8 1202EE     386   lcall ?WriteData ; Send to LCD
+04BB E5F0       387   mov a, b    ; Remainder is in register b
+04BD 75F00A     388   mov b, #10
+04C0 84         389   div ab
+04C1 4430       390   orl a, #0x30 ; Convert tens to ASCII
+04C3 1202EE     391   lcall ?WriteData; Send to LCD
+04C6 E5F0       392   mov a, b
+04C8 4430       393   orl a, #0x30 ; Convert units to ASCII
+04CA 1202EE     394   lcall ?WriteData; Send to LCD
+04CD 22         395   ret
+04CE            396   
+                397   Change_8bit_Variable MAC
+                398   jb %0, %2
+                399   Wait_Milli_Seconds(#50) ; de-bounce
+                400   jb %0, %2
+                401   jnb %0, $
+                402   jb SHIFT_PB, skip%Mb
+                403   dec %1
+                404   sjmp skip%Ma
+                405   skip%Mb:
+                406   inc %1
+                407   skip%Ma:
+                408   ENDMAC
+04CE            409   
+                410   loadbyte mac
+                411   mov a, %0
+                412   movx @dptr, a
+                413   inc dptr
+                414   endmac
+04CE            415   
+04CE            416   Save_Configuration:
+04CE C0A8       417            push IE ; Save the current state of bit EA in the stack
+04D0 C2AF       418            clr EA ; Disable interrupts
+04D2 75D108     419            mov FCON, #0x08 ; Page Buffer Mapping Enabled (FPS = 1)
+04D5 907F80     420            mov dptr, #0x7f80 ; Last page of flash memory
+04D8            421            ; Save variables
+04D8 E535       422   mov a, temp_soak
+04DA F0         422   movx @dptr, a
+04DB A3         422   inc dptr ; @0x7f80
+04DC E533       423   mov a, time_soak
+04DE F0         423   movx @dptr, a
+04DF A3         423   inc dptr ; @0x7f81
+04E0 E536       424   mov a, temp_refl
+04E2 F0         424   movx @dptr, a
+04E3 A3         424   inc dptr ; @0x7f82
+04E4 E534       425   mov a, time_refl
+04E6 F0         425   movx @dptr, a
+04E7 A3         425   inc dptr ; @0x7f83
+04E8 7455       426   mov a, #0x55
+04EA F0         426   movx @dptr, a
+04EB A3         426   inc dptr ; First key value @0x7f84
+04EC 74AA       427   mov a, #0xAA
+04EE F0         427   movx @dptr, a
+04EF A3         427   inc dptr ; Second key value @0x7f85
+04F0 75D100     428            mov FCON, #0x00 ; Page Buffer Mapping Disabled (FPS = 0)
+04F3 43D240     429            orl EECON, #0b01000000 ; Enable auto-erase on next write sequence
+04F6 75D150     430            mov FCON, #0x50 ; Write trigger first byte
+04F9 75D1A0     431            mov FCON, #0xA0 ; Write trigger second byte
+04FC            432            ; CPU idles until writing of flash completes.
+04FC 75D100     433            mov FCON, #0x00 ; Page Buffer Mapping Disabled (FPS = 0)
+04FF 53D2BF     434            anl EECON, #0b10111111 ; Disable auto-erase
+0502 D0A8       435            pop IE ; Restore the state of bit EA from the stack
+0504 22         436            ret
+0505            437   
+0505            438   
+0505 54533A20   439   Initial_Message:  db 'TS:   TR:    T   ', 0
+     20205452
+     3A202020
+     20542020
+     2000
+0517 74733A20   440   Line:             db 'ts:   tR:        ', 0
+     20207452
+     3A202020
+     20202020
+     2000
+0529            441   
+                442   getbyte mac
+                443   clr a
+                444   movc a, @a+dptr
+                445   mov %0, a
+                446   inc dptr
+                447   Endmac
+0529            448   Load_Configuration:
+0529 907F84     449            mov dptr, #0x7f84 ; First key value location.
+052C E4         450   clr a
+052D 93         450   movc a, @a+dptr
+052E F8         450   mov R0, a
+052F A3         450   inc dptr ; 0x7f84 should contain 0x55
+0530 B8551F     451            cjne R0, #0x55, Load_Defaults
+0533 E4         452   clr a
+0534 93         452   movc a, @a+dptr
+0535 F8         452   mov R0, a
+0536 A3         452   inc dptr ; 0x7f85 should contain 0xAA
+0537 B8AA18     453            cjne R0, #0xAA, Load_Defaults
+053A            454            ; Keys are good.  Get stored values.
+053A 907F80     455            mov dptr, #0x7f80
+053D E4         456   clr a
+053E 93         456   movc a, @a+dptr
+053F F535       456   mov temp_soak, a
+0541 A3         456   inc dptr ; 0x7f80
+0542 E4         457   clr a
+0543 93         457   movc a, @a+dptr
+0544 F533       457   mov time_soak, a
+0546 A3         457   inc dptr ; 0x7f81
+0547 E4         458   clr a
+0548 93         458   movc a, @a+dptr
+0549 F536       458   mov temp_refl, a
+054B A3         458   inc dptr ; 0x7f82
+054C E4         459   clr a
+054D 93         459   movc a, @a+dptr
+054E F534       459   mov time_refl, a
+0550 A3         459   inc dptr ; 0x7f83
+0551 22         460            ret
+0552            461   
+0552            462   Load_Defaults:
+0552 753596     463   mov temp_soak, #150
+0555 75332D     464   mov time_soak, #45
+0558 7536E1     465   mov temp_refl, #225
+055B 75341E     466   mov time_refl, #30
+055E 22         467   ret
+055F            468   
+055F            469   
+055F            470   
+                471   Send_BCD mac
+                472   	 push ar0
+                473   	 mov r0,%0
+                474   	 lcall ?Send_BCD
+                475   	 pop ar0
+                476   	endmac
+055F            477   
+055F            478   ?Send_BCD:
+055F C0E0       479            push acc
+0561            480            ;send most significant digit
+0561 E8         481            mov a, r0
+0562 C4         482            swap a 
+0563 540F       483            anl a, #0fh
+0565 4430       484            orl a, #30h
+0567 1203F6     485            lcall putchar
+056A            486            ;send least sigfig
+056A E8         487            mov a, r0
+056B 540F       488            anl a ,#0fh
+056D 4430       489            orl a, #30h
+056F 1203F6     490            lcall putchar
+0572            491            
+0572 D0E0       492            pop acc
+0574 22         493            ret
+0575            494   
+                495     Read_ADC_Channel MAC
+                496       mov b, #%0
+                497       lcall _Read_ADC_Channel
+                498       ENDMAC
+0575            499   
+0575            500    _READ_ADC_Channel:
+0575 C2A0       501     clr CE_ADC
+0577 7801       502     mov R0, #00000001B ; Start bit:1
+0579 12040F     503     lcall DO_SPI_G
+057C E5F0       504     mov a, b
+057E C4         505     swap a
+057F 54F0       506     anl a, #0F0H
+0581 D2E7       507     setb acc.7 ; Single mode (bit 7).
+0583 F8         508     mov R0, a
+0584 12040F     509     lcall DO_SPI_G
+0587 E9         510     mov a, R1 ; R1 contains bits 8 and 9
+0588 5403       511     anl a, #00000011B  ; We need only the two least significant bits
+058A FF         512     mov R7, a ; Save result high.
+058B 7855       513     mov R0, #55H ; It doesn't matter what we transmit...
+058D 12040F     514     lcall DO_SPI_G
+0590 E9         515     mov a,R1
+0591 FE         516     mov R6,a
+0592 D2A0       517     setb CE_ADC
+0594 22         518     ret
+0595            519            
+                520   PLAY_SOUND MAC
+                521   	; PLAY_SOUND(%0, %1, %2, %3, %4, %5) inputs will be hex numbers (diff segments of address)
+                522   	; input has to automatically be in hex format with the #
+                523   	clr TR1 ; Stop Timer 1 ISR from playing previous request
+                524   	; I think we'll want to remove the above instruction and include it right AFTER this has been called
+                525   	setb FLASH_CE
+                526   	clr SPEAKER
+                527   
+                528   	clr FLASH_CE
+                529   	mov a, #READ_BYTES
+                530   	lcall Send_SPI
+                531   
+                532   	mov a, %0
+                533   	
+                534   	lcall Send_SPI 
+                535   	
+                536   	mov a, %1
+                537   	lcall Send_SPI
+                538   
+                539   	mov a, %2
+                540   	lcall Send_SPI
+                541   	mov a, #0x00
+                542   	lcall Send_SPI
+                543   
+                544   	mov w+2, %3
+                545   	mov w+1, %4
+                546   	mov w+0, %5
+                547   	
+                548   	setb SPEAKER
+                549   	setb TR1
+                550   	
+                551   ENDMAC
+0595            552            
+0595            553            
+0595            554   TEMP_JUNCTION:
+0595            555   
+0595 75F000     556       mov b, #0
+0598 120575     556       lcall _Read_ADC_Channel
+059B 8E43       557       mov x+0, R6
+059D 8F44       558       mov x+1, R7
+059F 754500     559       mov x+2, #0
+05A2 754600     560       mov x+3, #0
+05A5            561   
+05A5 7547C4     562            mov y+0, #low (964 % 0x10000) 
+05A8 754803     562            mov y+1, #high(964 % 0x10000) 
+05AB 754900     562            mov y+2, #low (964 / 0x10000) 
+05AE 754A00     562            mov y+3, #high(964 / 0x10000) 
+05B1 1201A8     563       lcall mul32
+05B4 7547E8     564            mov y+0, #low (1000 % 0x10000) 
+05B7 754803     564            mov y+1, #high(1000 % 0x10000) 
+05BA 754900     564            mov y+2, #low (1000 / 0x10000) 
+05BD 754A00     564            mov y+3, #high(1000 / 0x10000) 
+05C0 120235     565       lcall div32
+05C3 754716     566            mov y+0, #low (22 % 0x10000) 
+05C6 754800     566            mov y+1, #high(22 % 0x10000) 
+05C9 754900     566            mov y+2, #low (22 / 0x10000) 
+05CC 754A00     566            mov y+3, #high(22 / 0x10000) 
+05CF 1200F3     567       lcall add32
+05D2            568       ;lcall hex2bcd
+05D2            569   
+05D2            570            ;mov temp+4, bcd+4
+05D2            571            ;mov temp+3, bcd+3
+05D2            572       ;mov temp+2, bcd+2
+05D2            573       ;mov temp+1, bcd+1
+05D2            574       ;mov temp+0, bcd+
+05D2            575       
+05D2 854339     576       mov temp+0, x+0
+05D5 85443A     577       mov temp+1, x+1
+05D8 85453B     578       mov temp+2, x+2
+05DB 85463C     579       mov temp+3, x+3
+05DE            580       
+05DE 12002E     581       lcall hex2bcd
+05E1 200A01     582       jb one_second_flag, TEMP_JUNCTION2
+05E4 22         583       ret
+05E5            584       
+05E5            585       
+05E5            586   TEMP_JUNCTION2:
+05E5            587            ;Send_BCD(bcd+4)
+05E5            588            ;Send_BCD(bcd+3)
+05E5 C000       589             push ar0
+05E7 A84D       589             mov r0,bcd+2
+05E9 12055F     589             lcall ?Send_BCD
+05EC D000       589             pop ar0
+05EE C000       590             push ar0
+05F0 A84C       590             mov r0,bcd+1
+05F2 12055F     590             lcall ?Send_BCD
+05F5 D000       590             pop ar0
+05F7 C000       591             push ar0
+05F9 A84B       591             mov r0,bcd+0
+05FB 12055F     591             lcall ?Send_BCD
+05FE D000       591             pop ar0
+0600            592       
+0600 740D       593       mov a, #'\r'
+0602 1203F6     594       lcall putchar
+0605            595   
+0605 740A       596       mov a, #'\n'
+0607 1203F6     597       lcall putchar
+060A C20A       598            clr one_second_flag
+060C 22         599    ret
+060D            600    
+060D            601            Delay:
+060D C002       602            push AR2
+060F 7AFA       602            mov R2, #250
+0611 1202A9     602            lcall ?Wait_Milli_Seconds
+0614 D002       602            pop AR2
+0616 C002       603            push AR2
+0618 7AFA       603            mov R2, #250
+061A 1202A9     603            lcall ?Wait_Milli_Seconds
+061D D002       603            pop AR2
+061F C002       604            push AR2
+0621 7AFA       604            mov R2, #250
+0623 1202A9     604            lcall ?Wait_Milli_Seconds
+0626 D002       604            pop AR2
+0628 C002       605            push AR2
+062A 7AFA       605            mov R2, #250
+062C 1202A9     605            lcall ?Wait_Milli_Seconds
+062F D002       605            pop AR2
+0631 22         606                    ret
+0632            607   
+0632            608            sound_zero:
+0632            609            ; PLAY_SOUND(#0x02, #0x8C, #0xBD, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0632            609            ; input has to automatically be in hex format with the #
+0632 C28E       609            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0634            609            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0634 D2A5       609            setb FLASH_CE
+0636 C2A6       609            clr SPEAKER
+0638            609   
+0638 C2A5       609            clr FLASH_CE
+063A 7403       609            mov a, #READ_BYTES
+063C 120381     609            lcall Send_SPI
+063F            609   
+063F 7402       609            mov a, #0x02
+0641            609            
+0641 120381     609            lcall Send_SPI 
+0644            609            
+0644 748C       609            mov a, #0x8C
+0646 120381     609            lcall Send_SPI
+0649            609   
+0649 74BD       609            mov a, #0xBD
+064B 120381     609            lcall Send_SPI
+064E 7400       609            mov a, #0x00
+0650 120381     609            lcall Send_SPI
+0653            609   
+0653 753200     609            mov w+2, #0x00
+0656 75313A     609            mov w+1, #0x3A
+0659 753098     609            mov w+0, #0x98
+065C            609            
+065C D2A6       609            setb SPEAKER
+065E D28E       609            setb TR1
+0660            609            
+0660 12060D     610            lcall Delay
+0663 22         611            ret 
+0664            612   
+0664            613            sound_one:
+0664            614            ; PLAY_SOUND(#0x02, #0xDC, #0xBB, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0664            614            ; input has to automatically be in hex format with the #
+0664 C28E       614            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0666            614            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0666 D2A5       614            setb FLASH_CE
+0668 C2A6       614            clr SPEAKER
+066A            614   
+066A C2A5       614            clr FLASH_CE
+066C 7403       614            mov a, #READ_BYTES
+066E 120381     614            lcall Send_SPI
+0671            614   
+0671 7402       614            mov a, #0x02
+0673            614            
+0673 120381     614            lcall Send_SPI 
+0676            614            
+0676 74DC       614            mov a, #0xDC
+0678 120381     614            lcall Send_SPI
+067B            614   
+067B 74BB       614            mov a, #0xBB
+067D 120381     614            lcall Send_SPI
+0680 7400       614            mov a, #0x00
+0682 120381     614            lcall Send_SPI
+0685            614   
+0685 753200     614            mov w+2, #0x00
+0688 75313A     614            mov w+1, #0x3A
+068B 753098     614            mov w+0, #0x98
+068E            614            
+068E D2A6       614            setb SPEAKER
+0690 D28E       614            setb TR1
+0692            614            
+0692 12060D     615            lcall Delay
+0695 22         616            ret 
+0696            617   
+0696            618            sound_two:
+0696            619            ; PLAY_SOUND(#0x03, #0x1D, #0xBC, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0696            619            ; input has to automatically be in hex format with the #
+0696 C28E       619            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0698            619            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0698 D2A5       619            setb FLASH_CE
+069A C2A6       619            clr SPEAKER
+069C            619   
+069C C2A5       619            clr FLASH_CE
+069E 7403       619            mov a, #READ_BYTES
+06A0 120381     619            lcall Send_SPI
+06A3            619   
+06A3 7403       619            mov a, #0x03
+06A5            619            
+06A5 120381     619            lcall Send_SPI 
+06A8            619            
+06A8 741D       619            mov a, #0x1D
+06AA 120381     619            lcall Send_SPI
+06AD            619   
+06AD 74BC       619            mov a, #0xBC
+06AF 120381     619            lcall Send_SPI
+06B2 7400       619            mov a, #0x00
+06B4 120381     619            lcall Send_SPI
+06B7            619   
+06B7 753200     619            mov w+2, #0x00
+06BA 75313A     619            mov w+1, #0x3A
+06BD 753098     619            mov w+0, #0x98
+06C0            619            
+06C0 D2A6       619            setb SPEAKER
+06C2 D28E       619            setb TR1
+06C4            619            
+06C4 12060D     620            lcall Delay
+06C7 22         621            ret 
+06C8            622   
+06C8            623            sound_three:
+06C8            624            ; PLAY_SOUND(#0x03, #0x4E, #0xB3, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+06C8            624            ; input has to automatically be in hex format with the #
+06C8 C28E       624            clr TR1 ; Stop Timer 1 ISR from playing previous request
+06CA            624            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+06CA D2A5       624            setb FLASH_CE
+06CC C2A6       624            clr SPEAKER
+06CE            624   
+06CE C2A5       624            clr FLASH_CE
+06D0 7403       624            mov a, #READ_BYTES
+06D2 120381     624            lcall Send_SPI
+06D5            624   
+06D5 7403       624            mov a, #0x03
+06D7            624            
+06D7 120381     624            lcall Send_SPI 
+06DA            624            
+06DA 744E       624            mov a, #0x4E
+06DC 120381     624            lcall Send_SPI
+06DF            624   
+06DF 74B3       624            mov a, #0xB3
+06E1 120381     624            lcall Send_SPI
+06E4 7400       624            mov a, #0x00
+06E6 120381     624            lcall Send_SPI
+06E9            624   
+06E9 753200     624            mov w+2, #0x00
+06EC 75313A     624            mov w+1, #0x3A
+06EF 753098     624            mov w+0, #0x98
+06F2            624            
+06F2 D2A6       624            setb SPEAKER
+06F4 D28E       624            setb TR1
+06F6            624            
+06F6 12060D     625            lcall Delay
+06F9 22         626            ret 
+06FA            627   
+06FA            628            sound_four:
+06FA            629            ; PLAY_SOUND(#0x03, #0x99, #0x4B, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+06FA            629            ; input has to automatically be in hex format with the #
+06FA C28E       629            clr TR1 ; Stop Timer 1 ISR from playing previous request
+06FC            629            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+06FC D2A5       629            setb FLASH_CE
+06FE C2A6       629            clr SPEAKER
+0700            629   
+0700 C2A5       629            clr FLASH_CE
+0702 7403       629            mov a, #READ_BYTES
+0704 120381     629            lcall Send_SPI
+0707            629   
+0707 7403       629            mov a, #0x03
+0709            629            
+0709 120381     629            lcall Send_SPI 
+070C            629            
+070C 7499       629            mov a, #0x99
+070E 120381     629            lcall Send_SPI
+0711            629   
+0711 744B       629            mov a, #0x4B
+0713 120381     629            lcall Send_SPI
+0716 7400       629            mov a, #0x00
+0718 120381     629            lcall Send_SPI
+071B            629   
+071B 753200     629            mov w+2, #0x00
+071E 75313A     629            mov w+1, #0x3A
+0721 753098     629            mov w+0, #0x98
+0724            629            
+0724 D2A6       629            setb SPEAKER
+0726 D28E       629            setb TR1
+0728            629            
+0728 12060D     630            lcall Delay
+072B 22         631            ret 
+072C            632   
+072C            633            sound_five:
+072C            634            ; PLAY_SOUND(#0x03, #0xE3, #0xE3, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+072C            634            ; input has to automatically be in hex format with the #
+072C C28E       634            clr TR1 ; Stop Timer 1 ISR from playing previous request
+072E            634            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+072E D2A5       634            setb FLASH_CE
+0730 C2A6       634            clr SPEAKER
+0732            634   
+0732 C2A5       634            clr FLASH_CE
+0734 7403       634            mov a, #READ_BYTES
+0736 120381     634            lcall Send_SPI
+0739            634   
+0739 7403       634            mov a, #0x03
+073B            634            
+073B 120381     634            lcall Send_SPI 
+073E            634            
+073E 74E3       634            mov a, #0xE3
+0740 120381     634            lcall Send_SPI
+0743            634   
+0743 74E3       634            mov a, #0xE3
+0745 120381     634            lcall Send_SPI
+0748 7400       634            mov a, #0x00
+074A 120381     634            lcall Send_SPI
+074D            634   
+074D 753200     634            mov w+2, #0x00
+0750 75313A     634            mov w+1, #0x3A
+0753 753098     634            mov w+0, #0x98
+0756            634            
+0756 D2A6       634            setb SPEAKER
+0758 D28E       634            setb TR1
+075A            634            
+075A 12060D     635            lcall Delay
+075D 22         636            ret 
+075E            637   
+075E            638   
+075E            639            sound_six:
+075E            640            ; PLAY_SOUND(#0x04, #0x2E, #0x7B, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+075E            640            ; input has to automatically be in hex format with the #
+075E C28E       640            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0760            640            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0760 D2A5       640            setb FLASH_CE
+0762 C2A6       640            clr SPEAKER
+0764            640   
+0764 C2A5       640            clr FLASH_CE
+0766 7403       640            mov a, #READ_BYTES
+0768 120381     640            lcall Send_SPI
+076B            640   
+076B 7404       640            mov a, #0x04
+076D            640            
+076D 120381     640            lcall Send_SPI 
+0770            640            
+0770 742E       640            mov a, #0x2E
+0772 120381     640            lcall Send_SPI
+0775            640   
+0775 747B       640            mov a, #0x7B
+0777 120381     640            lcall Send_SPI
+077A 7400       640            mov a, #0x00
+077C 120381     640            lcall Send_SPI
+077F            640   
+077F 753200     640            mov w+2, #0x00
+0782 75313A     640            mov w+1, #0x3A
+0785 753098     640            mov w+0, #0x98
+0788            640            
+0788 D2A6       640            setb SPEAKER
+078A D28E       640            setb TR1
+078C            640            
+078C 12060D     641            lcall Delay
+078F 22         642            ret 
+0790            643   
+0790            644   
+0790            645            sound_seven:
+0790            646            ; PLAY_SOUND(#0x04, #0x79, #0x13, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0790            646            ; input has to automatically be in hex format with the #
+0790 C28E       646            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0792            646            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0792 D2A5       646            setb FLASH_CE
+0794 C2A6       646            clr SPEAKER
+0796            646   
+0796 C2A5       646            clr FLASH_CE
+0798 7403       646            mov a, #READ_BYTES
+079A 120381     646            lcall Send_SPI
+079D            646   
+079D 7404       646            mov a, #0x04
+079F            646            
+079F 120381     646            lcall Send_SPI 
+07A2            646            
+07A2 7479       646            mov a, #0x79
+07A4 120381     646            lcall Send_SPI
+07A7            646   
+07A7 7413       646            mov a, #0x13
+07A9 120381     646            lcall Send_SPI
+07AC 7400       646            mov a, #0x00
+07AE 120381     646            lcall Send_SPI
+07B1            646   
+07B1 753200     646            mov w+2, #0x00
+07B4 75313A     646            mov w+1, #0x3A
+07B7 753098     646            mov w+0, #0x98
+07BA            646            
+07BA D2A6       646            setb SPEAKER
+07BC D28E       646            setb TR1
+07BE            646            
+07BE 12060D     647            lcall Delay
+07C1 22         648            ret 
+07C2            649   
+07C2            650            sound_eight:
+07C2            651            ; PLAY_SOUND(#0x04, #0xC3, #0xAB, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+07C2            651            ; input has to automatically be in hex format with the #
+07C2 C28E       651            clr TR1 ; Stop Timer 1 ISR from playing previous request
+07C4            651            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+07C4 D2A5       651            setb FLASH_CE
+07C6 C2A6       651            clr SPEAKER
+07C8            651   
+07C8 C2A5       651            clr FLASH_CE
+07CA 7403       651            mov a, #READ_BYTES
+07CC 120381     651            lcall Send_SPI
+07CF            651   
+07CF 7404       651            mov a, #0x04
+07D1            651            
+07D1 120381     651            lcall Send_SPI 
+07D4            651            
+07D4 74C3       651            mov a, #0xC3
+07D6 120381     651            lcall Send_SPI
+07D9            651   
+07D9 74AB       651            mov a, #0xAB
+07DB 120381     651            lcall Send_SPI
+07DE 7400       651            mov a, #0x00
+07E0 120381     651            lcall Send_SPI
+07E3            651   
+07E3 753200     651            mov w+2, #0x00
+07E6 75313A     651            mov w+1, #0x3A
+07E9 753098     651            mov w+0, #0x98
+07EC            651            
+07EC D2A6       651            setb SPEAKER
+07EE D28E       651            setb TR1
+07F0            651            
+07F0 12060D     652            lcall Delay
+07F3 22         653            ret 
+07F4            654   
+07F4            655            sound_nine:
+07F4            656            ; PLAY_SOUND(#0x05, #0x0E, #0x43, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+07F4            656            ; input has to automatically be in hex format with the #
+07F4 C28E       656            clr TR1 ; Stop Timer 1 ISR from playing previous request
+07F6            656            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+07F6 D2A5       656            setb FLASH_CE
+07F8 C2A6       656            clr SPEAKER
+07FA            656   
+07FA C2A5       656            clr FLASH_CE
+07FC 7403       656            mov a, #READ_BYTES
+07FE 120381     656            lcall Send_SPI
+0801            656   
+0801 7405       656            mov a, #0x05
+0803            656            
+0803 120381     656            lcall Send_SPI 
+0806            656            
+0806 740E       656            mov a, #0x0E
+0808 120381     656            lcall Send_SPI
+080B            656   
+080B 7443       656            mov a, #0x43
+080D 120381     656            lcall Send_SPI
+0810 7400       656            mov a, #0x00
+0812 120381     656            lcall Send_SPI
+0815            656   
+0815 753200     656            mov w+2, #0x00
+0818 75313A     656            mov w+1, #0x3A
+081B 753098     656            mov w+0, #0x98
+081E            656            
+081E D2A6       656            setb SPEAKER
+0820 D28E       656            setb TR1
+0822            656            
+0822 12060D     657            lcall Delay
+0825 22         658            ret 
+0826            659   
+0826            660   
+0826            661            sound_ten:
+0826            662            ; PLAY_SOUND(#0x05, #0x58, #0xDB, #0x00, #0x30, #0xFC) inputs will be hex numbers (diff segments of address)
+0826            662            ; input has to automatically be in hex format with the #
+0826 C28E       662            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0828            662            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0828 D2A5       662            setb FLASH_CE
+082A C2A6       662            clr SPEAKER
+082C            662   
+082C C2A5       662            clr FLASH_CE
+082E 7403       662            mov a, #READ_BYTES
+0830 120381     662            lcall Send_SPI
+0833            662   
+0833 7405       662            mov a, #0x05
+0835            662            
+0835 120381     662            lcall Send_SPI 
+0838            662            
+0838 7458       662            mov a, #0x58
+083A 120381     662            lcall Send_SPI
+083D            662   
+083D 74DB       662            mov a, #0xDB
+083F 120381     662            lcall Send_SPI
+0842 7400       662            mov a, #0x00
+0844 120381     662            lcall Send_SPI
+0847            662   
+0847 753200     662            mov w+2, #0x00
+084A 753130     662            mov w+1, #0x30
+084D 7530FC     662            mov w+0, #0xFC
+0850            662            
+0850 D2A6       662            setb SPEAKER
+0852 D28E       662            setb TR1
+0854            662            
+0854 12060D     663            lcall Delay
+0857 22         664            ret 
+0858            665   
+0858            666            sound_eleven:
+0858            667            ; PLAY_SOUND(#0x05, #0x8F, #0xD7, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0858            667            ; input has to automatically be in hex format with the #
+0858 C28E       667            clr TR1 ; Stop Timer 1 ISR from playing previous request
+085A            667            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+085A D2A5       667            setb FLASH_CE
+085C C2A6       667            clr SPEAKER
+085E            667   
+085E C2A5       667            clr FLASH_CE
+0860 7403       667            mov a, #READ_BYTES
+0862 120381     667            lcall Send_SPI
+0865            667   
+0865 7405       667            mov a, #0x05
+0867            667            
+0867 120381     667            lcall Send_SPI 
+086A            667            
+086A 748F       667            mov a, #0x8F
+086C 120381     667            lcall Send_SPI
+086F            667   
+086F 74D7       667            mov a, #0xD7
+0871 120381     667            lcall Send_SPI
+0874 7400       667            mov a, #0x00
+0876 120381     667            lcall Send_SPI
+0879            667   
+0879 753200     667            mov w+2, #0x00
+087C 75313A     667            mov w+1, #0x3A
+087F 753098     667            mov w+0, #0x98
+0882            667            
+0882 D2A6       667            setb SPEAKER
+0884 D28E       667            setb TR1
+0886            667            
+0886 12060D     668            lcall Delay
+0889 22         669            ret 
+088A            670   
+088A            671   
+088A            672            sound_twelve:
+088A            673            ; PLAY_SOUND(#0x05, #0xDA, #0x6F, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+088A            673            ; input has to automatically be in hex format with the #
+088A C28E       673            clr TR1 ; Stop Timer 1 ISR from playing previous request
+088C            673            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+088C D2A5       673            setb FLASH_CE
+088E C2A6       673            clr SPEAKER
+0890            673   
+0890 C2A5       673            clr FLASH_CE
+0892 7403       673            mov a, #READ_BYTES
+0894 120381     673            lcall Send_SPI
+0897            673   
+0897 7405       673            mov a, #0x05
+0899            673            
+0899 120381     673            lcall Send_SPI 
+089C            673            
+089C 74DA       673            mov a, #0xDA
+089E 120381     673            lcall Send_SPI
+08A1            673   
+08A1 746F       673            mov a, #0x6F
+08A3 120381     673            lcall Send_SPI
+08A6 7400       673            mov a, #0x00
+08A8 120381     673            lcall Send_SPI
+08AB            673   
+08AB 753200     673            mov w+2, #0x00
+08AE 75313A     673            mov w+1, #0x3A
+08B1 753098     673            mov w+0, #0x98
+08B4            673            
+08B4 D2A6       673            setb SPEAKER
+08B6 D28E       673            setb TR1
+08B8            673            
+08B8 12060D     674            lcall Delay
+08BB 22         675            ret 
+08BC            676   
+08BC            677            sound_thirteen:
+08BC            678            ; PLAY_SOUND(#0x06, #0x25, #0x07, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+08BC            678            ; input has to automatically be in hex format with the #
+08BC C28E       678            clr TR1 ; Stop Timer 1 ISR from playing previous request
+08BE            678            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+08BE D2A5       678            setb FLASH_CE
+08C0 C2A6       678            clr SPEAKER
+08C2            678   
+08C2 C2A5       678            clr FLASH_CE
+08C4 7403       678            mov a, #READ_BYTES
+08C6 120381     678            lcall Send_SPI
+08C9            678   
+08C9 7406       678            mov a, #0x06
+08CB            678            
+08CB 120381     678            lcall Send_SPI 
+08CE            678            
+08CE 7425       678            mov a, #0x25
+08D0 120381     678            lcall Send_SPI
+08D3            678   
+08D3 7407       678            mov a, #0x07
+08D5 120381     678            lcall Send_SPI
+08D8 7400       678            mov a, #0x00
+08DA 120381     678            lcall Send_SPI
+08DD            678   
+08DD 753200     678            mov w+2, #0x00
+08E0 75313A     678            mov w+1, #0x3A
+08E3 753098     678            mov w+0, #0x98
+08E6            678            
+08E6 D2A6       678            setb SPEAKER
+08E8 D28E       678            setb TR1
+08EA            678            
+08EA 12060D     679            lcall Delay
+08ED 22         680            ret 
+08EE            681   
+08EE            682   
+08EE            683            sound_fourteen:
+08EE            684            ; PLAY_SOUND(#0x06, #0x6F, #0x9F, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+08EE            684            ; input has to automatically be in hex format with the #
+08EE C28E       684            clr TR1 ; Stop Timer 1 ISR from playing previous request
+08F0            684            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+08F0 D2A5       684            setb FLASH_CE
+08F2 C2A6       684            clr SPEAKER
+08F4            684   
+08F4 C2A5       684            clr FLASH_CE
+08F6 7403       684            mov a, #READ_BYTES
+08F8 120381     684            lcall Send_SPI
+08FB            684   
+08FB 7406       684            mov a, #0x06
+08FD            684            
+08FD 120381     684            lcall Send_SPI 
+0900            684            
+0900 746F       684            mov a, #0x6F
+0902 120381     684            lcall Send_SPI
+0905            684   
+0905 749F       684            mov a, #0x9F
+0907 120381     684            lcall Send_SPI
+090A 7400       684            mov a, #0x00
+090C 120381     684            lcall Send_SPI
+090F            684   
+090F 753200     684            mov w+2, #0x00
+0912 75313A     684            mov w+1, #0x3A
+0915 753098     684            mov w+0, #0x98
+0918            684            
+0918 D2A6       684            setb SPEAKER
+091A D28E       684            setb TR1
+091C            684            
+091C 12060D     685            lcall Delay
+091F 22         686            ret 
+0920            687   
+0920            688            sound_fifteen:
+0920            689            ; PLAY_SOUND(#0x06, #0xB8, #0x37, #0x00, #0x42, #0x68) inputs will be hex numbers (diff segments of address)
+0920            689            ; input has to automatically be in hex format with the #
+0920 C28E       689            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0922            689            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0922 D2A5       689            setb FLASH_CE
+0924 C2A6       689            clr SPEAKER
+0926            689   
+0926 C2A5       689            clr FLASH_CE
+0928 7403       689            mov a, #READ_BYTES
+092A 120381     689            lcall Send_SPI
+092D            689   
+092D 7406       689            mov a, #0x06
+092F            689            
+092F 120381     689            lcall Send_SPI 
+0932            689            
+0932 74B8       689            mov a, #0xB8
+0934 120381     689            lcall Send_SPI
+0937            689   
+0937 7437       689            mov a, #0x37
+0939 120381     689            lcall Send_SPI
+093C 7400       689            mov a, #0x00
+093E 120381     689            lcall Send_SPI
+0941            689   
+0941 753200     689            mov w+2, #0x00
+0944 753142     689            mov w+1, #0x42
+0947 753068     689            mov w+0, #0x68
+094A            689            
+094A D2A6       689            setb SPEAKER
+094C D28E       689            setb TR1
+094E            689            
+094E 12060D     690            lcall Delay
+0951 22         691            ret 
+0952            692   
+0952            693   
+0952            694            sound_sixteen:
+0952            695            ; PLAY_SOUND(#0x07, #0x0C, #0x9F, #0x00, #0x4E, #0x20) inputs will be hex numbers (diff segments of address)
+0952            695            ; input has to automatically be in hex format with the #
+0952 C28E       695            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0954            695            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0954 D2A5       695            setb FLASH_CE
+0956 C2A6       695            clr SPEAKER
+0958            695   
+0958 C2A5       695            clr FLASH_CE
+095A 7403       695            mov a, #READ_BYTES
+095C 120381     695            lcall Send_SPI
+095F            695   
+095F 7407       695            mov a, #0x07
+0961            695            
+0961 120381     695            lcall Send_SPI 
+0964            695            
+0964 740C       695            mov a, #0x0C
+0966 120381     695            lcall Send_SPI
+0969            695   
+0969 749F       695            mov a, #0x9F
+096B 120381     695            lcall Send_SPI
+096E 7400       695            mov a, #0x00
+0970 120381     695            lcall Send_SPI
+0973            695   
+0973 753200     695            mov w+2, #0x00
+0976 75314E     695            mov w+1, #0x4E
+0979 753020     695            mov w+0, #0x20
+097C            695            
+097C D2A6       695            setb SPEAKER
+097E D28E       695            setb TR1
+0980            695            
+0980 12060D     696            lcall Delay
+0983 22         697            ret 
+0984            698   
+0984            699            sound_seventeen:
+0984            700            ; PLAY_SOUND(#0x07, #0x6A, #0xBF, #0x00, #0x4E, #0x20) inputs will be hex numbers (diff segments of address)
+0984            700            ; input has to automatically be in hex format with the #
+0984 C28E       700            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0986            700            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0986 D2A5       700            setb FLASH_CE
+0988 C2A6       700            clr SPEAKER
+098A            700   
+098A C2A5       700            clr FLASH_CE
+098C 7403       700            mov a, #READ_BYTES
+098E 120381     700            lcall Send_SPI
+0991            700   
+0991 7407       700            mov a, #0x07
+0993            700            
+0993 120381     700            lcall Send_SPI 
+0996            700            
+0996 746A       700            mov a, #0x6A
+0998 120381     700            lcall Send_SPI
+099B            700   
+099B 74BF       700            mov a, #0xBF
+099D 120381     700            lcall Send_SPI
+09A0 7400       700            mov a, #0x00
+09A2 120381     700            lcall Send_SPI
+09A5            700   
+09A5 753200     700            mov w+2, #0x00
+09A8 75314E     700            mov w+1, #0x4E
+09AB 753020     700            mov w+0, #0x20
+09AE            700            
+09AE D2A6       700            setb SPEAKER
+09B0 D28E       700            setb TR1
+09B2            700            
+09B2 12060D     701            lcall Delay
+09B5 22         702            ret 
+09B6            703   
+09B6            704   
+09B6            705            sound_eighteen:
+09B6            706            ; PLAY_SOUND(#0x07, #0xC8, #0xDF, #0x00, #0x4E, #0x20) inputs will be hex numbers (diff segments of address)
+09B6            706            ; input has to automatically be in hex format with the #
+09B6 C28E       706            clr TR1 ; Stop Timer 1 ISR from playing previous request
+09B8            706            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+09B8 D2A5       706            setb FLASH_CE
+09BA C2A6       706            clr SPEAKER
+09BC            706   
+09BC C2A5       706            clr FLASH_CE
+09BE 7403       706            mov a, #READ_BYTES
+09C0 120381     706            lcall Send_SPI
+09C3            706   
+09C3 7407       706            mov a, #0x07
+09C5            706            
+09C5 120381     706            lcall Send_SPI 
+09C8            706            
+09C8 74C8       706            mov a, #0xC8
+09CA 120381     706            lcall Send_SPI
+09CD            706   
+09CD 74DF       706            mov a, #0xDF
+09CF 120381     706            lcall Send_SPI
+09D2 7400       706            mov a, #0x00
+09D4 120381     706            lcall Send_SPI
+09D7            706   
+09D7 753200     706            mov w+2, #0x00
+09DA 75314E     706            mov w+1, #0x4E
+09DD 753020     706            mov w+0, #0x20
+09E0            706            
+09E0 D2A6       706            setb SPEAKER
+09E2 D28E       706            setb TR1
+09E4            706            
+09E4 12060D     707            lcall Delay
+09E7 22         708            ret 
+09E8            709   
+09E8            710            sound_nineteen:
+09E8            711            ; PLAY_SOUND(#0x08, #0x26, #0xFF, #0x00, #0x4E, #0x20) inputs will be hex numbers (diff segments of address)
+09E8            711            ; input has to automatically be in hex format with the #
+09E8 C28E       711            clr TR1 ; Stop Timer 1 ISR from playing previous request
+09EA            711            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+09EA D2A5       711            setb FLASH_CE
+09EC C2A6       711            clr SPEAKER
+09EE            711   
+09EE C2A5       711            clr FLASH_CE
+09F0 7403       711            mov a, #READ_BYTES
+09F2 120381     711            lcall Send_SPI
+09F5            711   
+09F5 7408       711            mov a, #0x08
+09F7            711            
+09F7 120381     711            lcall Send_SPI 
+09FA            711            
+09FA 7426       711            mov a, #0x26
+09FC 120381     711            lcall Send_SPI
+09FF            711   
+09FF 74FF       711            mov a, #0xFF
+0A01 120381     711            lcall Send_SPI
+0A04 7400       711            mov a, #0x00
+0A06 120381     711            lcall Send_SPI
+0A09            711   
+0A09 753200     711            mov w+2, #0x00
+0A0C 75314E     711            mov w+1, #0x4E
+0A0F 753020     711            mov w+0, #0x20
+0A12            711            
+0A12 D2A6       711            setb SPEAKER
+0A14 D28E       711            setb TR1
+0A16            711            
+0A16 12060D     712            lcall Delay
+0A19 22         713            ret 
+0A1A            714   
+0A1A            715            sound_twenty:
+0A1A            716            ; PLAY_SOUND(#0x08, #0x85, #0x1F, #0x00, #0x4E, #0x20) inputs will be hex numbers (diff segments of address)
+0A1A            716            ; input has to automatically be in hex format with the #
+0A1A C28E       716            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0A1C            716            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0A1C D2A5       716            setb FLASH_CE
+0A1E C2A6       716            clr SPEAKER
+0A20            716   
+0A20 C2A5       716            clr FLASH_CE
+0A22 7403       716            mov a, #READ_BYTES
+0A24 120381     716            lcall Send_SPI
+0A27            716   
+0A27 7408       716            mov a, #0x08
+0A29            716            
+0A29 120381     716            lcall Send_SPI 
+0A2C            716            
+0A2C 7485       716            mov a, #0x85
+0A2E 120381     716            lcall Send_SPI
+0A31            716   
+0A31 741F       716            mov a, #0x1F
+0A33 120381     716            lcall Send_SPI
+0A36 7400       716            mov a, #0x00
+0A38 120381     716            lcall Send_SPI
+0A3B            716   
+0A3B 753200     716            mov w+2, #0x00
+0A3E 75314E     716            mov w+1, #0x4E
+0A41 753020     716            mov w+0, #0x20
+0A44            716            
+0A44 D2A6       716            setb SPEAKER
+0A46 D28E       716            setb TR1
+0A48            716            
+0A48 12060D     717            lcall Delay
+0A4B 22         718            ret 
+0A4C            719   
+0A4C            720            sound_thirty:
+0A4C            721            ; PLAY_SOUND(#0x08, #0xE3, #0x3F, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0A4C            721            ; input has to automatically be in hex format with the #
+0A4C C28E       721            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0A4E            721            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0A4E D2A5       721            setb FLASH_CE
+0A50 C2A6       721            clr SPEAKER
+0A52            721   
+0A52 C2A5       721            clr FLASH_CE
+0A54 7403       721            mov a, #READ_BYTES
+0A56 120381     721            lcall Send_SPI
+0A59            721   
+0A59 7408       721            mov a, #0x08
+0A5B            721            
+0A5B 120381     721            lcall Send_SPI 
+0A5E            721            
+0A5E 74E3       721            mov a, #0xE3
+0A60 120381     721            lcall Send_SPI
+0A63            721   
+0A63 743F       721            mov a, #0x3F
+0A65 120381     721            lcall Send_SPI
+0A68 7400       721            mov a, #0x00
+0A6A 120381     721            lcall Send_SPI
+0A6D            721   
+0A6D 753200     721            mov w+2, #0x00
+0A70 75313A     721            mov w+1, #0x3A
+0A73 753098     721            mov w+0, #0x98
+0A76            721            
+0A76 D2A6       721            setb SPEAKER
+0A78 D28E       721            setb TR1
+0A7A            721            
+0A7A 12060D     722            lcall Delay
+0A7D 22         723            ret 
+0A7E            724            
+0A7E            725   
+0A7E            726            sound_forty:
+0A7E            727            ; PLAY_SOUND(#0x09, #0x1D, #0xD7, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0A7E            727            ; input has to automatically be in hex format with the #
+0A7E C28E       727            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0A80            727            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0A80 D2A5       727            setb FLASH_CE
+0A82 C2A6       727            clr SPEAKER
+0A84            727   
+0A84 C2A5       727            clr FLASH_CE
+0A86 7403       727            mov a, #READ_BYTES
+0A88 120381     727            lcall Send_SPI
+0A8B            727   
+0A8B 7409       727            mov a, #0x09
+0A8D            727            
+0A8D 120381     727            lcall Send_SPI 
+0A90            727            
+0A90 741D       727            mov a, #0x1D
+0A92 120381     727            lcall Send_SPI
+0A95            727   
+0A95 74D7       727            mov a, #0xD7
+0A97 120381     727            lcall Send_SPI
+0A9A 7400       727            mov a, #0x00
+0A9C 120381     727            lcall Send_SPI
+0A9F            727   
+0A9F 753200     727            mov w+2, #0x00
+0AA2 75313A     727            mov w+1, #0x3A
+0AA5 753098     727            mov w+0, #0x98
+0AA8            727            
+0AA8 D2A6       727            setb SPEAKER
+0AAA D28E       727            setb TR1
+0AAC            727            
+0AAC 12060D     728            lcall Delay
+0AAF 22         729            ret 
+0AB0            730   
+0AB0            731            sound_fifty:
+0AB0            732            ; PLAY_SOUND(#0x09, #0x68, #0x6F, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0AB0            732            ; input has to automatically be in hex format with the #
+0AB0 C28E       732            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0AB2            732            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0AB2 D2A5       732            setb FLASH_CE
+0AB4 C2A6       732            clr SPEAKER
+0AB6            732   
+0AB6 C2A5       732            clr FLASH_CE
+0AB8 7403       732            mov a, #READ_BYTES
+0ABA 120381     732            lcall Send_SPI
+0ABD            732   
+0ABD 7409       732            mov a, #0x09
+0ABF            732            
+0ABF 120381     732            lcall Send_SPI 
+0AC2            732            
+0AC2 7468       732            mov a, #0x68
+0AC4 120381     732            lcall Send_SPI
+0AC7            732   
+0AC7 746F       732            mov a, #0x6F
+0AC9 120381     732            lcall Send_SPI
+0ACC 7400       732            mov a, #0x00
+0ACE 120381     732            lcall Send_SPI
+0AD1            732   
+0AD1 753200     732            mov w+2, #0x00
+0AD4 75313A     732            mov w+1, #0x3A
+0AD7 753098     732            mov w+0, #0x98
+0ADA            732            
+0ADA D2A6       732            setb SPEAKER
+0ADC D28E       732            setb TR1
+0ADE            732            
+0ADE 12060D     733            lcall Delay
+0AE1 22         734            ret 
+0AE2            735   
+0AE2            736            sound_sixty:
+0AE2            737            ; PLAY_SOUND(#0x09, #0xB3, #0x07, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0AE2            737            ; input has to automatically be in hex format with the #
+0AE2 C28E       737            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0AE4            737            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0AE4 D2A5       737            setb FLASH_CE
+0AE6 C2A6       737            clr SPEAKER
+0AE8            737   
+0AE8 C2A5       737            clr FLASH_CE
+0AEA 7403       737            mov a, #READ_BYTES
+0AEC 120381     737            lcall Send_SPI
+0AEF            737   
+0AEF 7409       737            mov a, #0x09
+0AF1            737            
+0AF1 120381     737            lcall Send_SPI 
+0AF4            737            
+0AF4 74B3       737            mov a, #0xB3
+0AF6 120381     737            lcall Send_SPI
+0AF9            737   
+0AF9 7407       737            mov a, #0x07
+0AFB 120381     737            lcall Send_SPI
+0AFE 7400       737            mov a, #0x00
+0B00 120381     737            lcall Send_SPI
+0B03            737   
+0B03 753200     737            mov w+2, #0x00
+0B06 75313A     737            mov w+1, #0x3A
+0B09 753098     737            mov w+0, #0x98
+0B0C            737            
+0B0C D2A6       737            setb SPEAKER
+0B0E D28E       737            setb TR1
+0B10            737            
+0B10 12060D     738            lcall Delay
+0B13 22         739            ret 
+0B14            740   
+0B14            741            sound_seventy:
+0B14            742            ; PLAY_SOUND(#0x09, #0xFD, #0x9F, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0B14            742            ; input has to automatically be in hex format with the #
+0B14 C28E       742            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0B16            742            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0B16 D2A5       742            setb FLASH_CE
+0B18 C2A6       742            clr SPEAKER
+0B1A            742   
+0B1A C2A5       742            clr FLASH_CE
+0B1C 7403       742            mov a, #READ_BYTES
+0B1E 120381     742            lcall Send_SPI
+0B21            742   
+0B21 7409       742            mov a, #0x09
+0B23            742            
+0B23 120381     742            lcall Send_SPI 
+0B26            742            
+0B26 74FD       742            mov a, #0xFD
+0B28 120381     742            lcall Send_SPI
+0B2B            742   
+0B2B 749F       742            mov a, #0x9F
+0B2D 120381     742            lcall Send_SPI
+0B30 7400       742            mov a, #0x00
+0B32 120381     742            lcall Send_SPI
+0B35            742   
+0B35 753200     742            mov w+2, #0x00
+0B38 75313A     742            mov w+1, #0x3A
+0B3B 753098     742            mov w+0, #0x98
+0B3E            742            
+0B3E D2A6       742            setb SPEAKER
+0B40 D28E       742            setb TR1
+0B42            742            
+0B42 12060D     743            lcall Delay
+0B45 22         744            ret 
+0B46            745   
+0B46            746            sound_eighty:
+0B46            747            ; PLAY_SOUND(#0x0A, #0x48, #0x37, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0B46            747            ; input has to automatically be in hex format with the #
+0B46 C28E       747            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0B48            747            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0B48 D2A5       747            setb FLASH_CE
+0B4A C2A6       747            clr SPEAKER
+0B4C            747   
+0B4C C2A5       747            clr FLASH_CE
+0B4E 7403       747            mov a, #READ_BYTES
+0B50 120381     747            lcall Send_SPI
+0B53            747   
+0B53 740A       747            mov a, #0x0A
+0B55            747            
+0B55 120381     747            lcall Send_SPI 
+0B58            747            
+0B58 7448       747            mov a, #0x48
+0B5A 120381     747            lcall Send_SPI
+0B5D            747   
+0B5D 7437       747            mov a, #0x37
+0B5F 120381     747            lcall Send_SPI
+0B62 7400       747            mov a, #0x00
+0B64 120381     747            lcall Send_SPI
+0B67            747   
+0B67 753200     747            mov w+2, #0x00
+0B6A 75313A     747            mov w+1, #0x3A
+0B6D 753098     747            mov w+0, #0x98
+0B70            747            
+0B70 D2A6       747            setb SPEAKER
+0B72 D28E       747            setb TR1
+0B74            747            
+0B74 12060D     748            lcall Delay
+0B77 22         749            ret 
+0B78            750   
+0B78            751            sound_ninety:
+0B78            752            ; PLAY_SOUND(#0x0A, #0x92, #0xCF, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0B78            752            ; input has to automatically be in hex format with the #
+0B78 C28E       752            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0B7A            752            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0B7A D2A5       752            setb FLASH_CE
+0B7C C2A6       752            clr SPEAKER
+0B7E            752   
+0B7E C2A5       752            clr FLASH_CE
+0B80 7403       752            mov a, #READ_BYTES
+0B82 120381     752            lcall Send_SPI
+0B85            752   
+0B85 740A       752            mov a, #0x0A
+0B87            752            
+0B87 120381     752            lcall Send_SPI 
+0B8A            752            
+0B8A 7492       752            mov a, #0x92
+0B8C 120381     752            lcall Send_SPI
+0B8F            752   
+0B8F 74CF       752            mov a, #0xCF
+0B91 120381     752            lcall Send_SPI
+0B94 7400       752            mov a, #0x00
+0B96 120381     752            lcall Send_SPI
+0B99            752   
+0B99 753200     752            mov w+2, #0x00
+0B9C 75313A     752            mov w+1, #0x3A
+0B9F 753098     752            mov w+0, #0x98
+0BA2            752            
+0BA2 D2A6       752            setb SPEAKER
+0BA4 D28E       752            setb TR1
+0BA6            752            
+0BA6 12060D     753            lcall Delay
+0BA9 22         754            ret 
+0BAA            755   
+0BAA            756            sound_100:
+0BAA            757            ; PLAY_SOUND(#0x0A, #0xF0, #0x3F, #0x00, #0x4E, #0x20) inputs will be hex numbers (diff segments of address)
+0BAA            757            ; input has to automatically be in hex format with the #
+0BAA C28E       757            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0BAC            757            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0BAC D2A5       757            setb FLASH_CE
+0BAE C2A6       757            clr SPEAKER
+0BB0            757   
+0BB0 C2A5       757            clr FLASH_CE
+0BB2 7403       757            mov a, #READ_BYTES
+0BB4 120381     757            lcall Send_SPI
+0BB7            757   
+0BB7 740A       757            mov a, #0x0A
+0BB9            757            
+0BB9 120381     757            lcall Send_SPI 
+0BBC            757            
+0BBC 74F0       757            mov a, #0xF0
+0BBE 120381     757            lcall Send_SPI
+0BC1            757   
+0BC1 743F       757            mov a, #0x3F
+0BC3 120381     757            lcall Send_SPI
+0BC6 7400       757            mov a, #0x00
+0BC8 120381     757            lcall Send_SPI
+0BCB            757   
+0BCB 753200     757            mov w+2, #0x00
+0BCE 75314E     757            mov w+1, #0x4E
+0BD1 753020     757            mov w+0, #0x20
+0BD4            757            
+0BD4 D2A6       757            setb SPEAKER
+0BD6 D28E       757            setb TR1
+0BD8            757            
+0BD8 22         758            ret
+0BD9            759   
+0BD9            760            sound_200:
+0BD9            761            ; PLAY_SOUND(#0x0B, #0x2E, #0x54, #0x00, #0x4E, #0x20) inputs will be hex numbers (diff segments of address)
+0BD9            761            ; input has to automatically be in hex format with the #
+0BD9 C28E       761            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0BDB            761            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0BDB D2A5       761            setb FLASH_CE
+0BDD C2A6       761            clr SPEAKER
+0BDF            761   
+0BDF C2A5       761            clr FLASH_CE
+0BE1 7403       761            mov a, #READ_BYTES
+0BE3 120381     761            lcall Send_SPI
+0BE6            761   
+0BE6 740B       761            mov a, #0x0B
+0BE8            761            
+0BE8 120381     761            lcall Send_SPI 
+0BEB            761            
+0BEB 742E       761            mov a, #0x2E
+0BED 120381     761            lcall Send_SPI
+0BF0            761   
+0BF0 7454       761            mov a, #0x54
+0BF2 120381     761            lcall Send_SPI
+0BF5 7400       761            mov a, #0x00
+0BF7 120381     761            lcall Send_SPI
+0BFA            761   
+0BFA 753200     761            mov w+2, #0x00
+0BFD 75314E     761            mov w+1, #0x4E
+0C00 753020     761            mov w+0, #0x20
+0C03            761            
+0C03 D2A6       761            setb SPEAKER
+0C05 D28E       761            setb TR1
+0C07            761            
+0C07 12060D     762            lcall Delay
+0C0A 22         763            ret 
+0C0B            764            
+0C0B            765   
+0C0B            766   
+0C0B            767            sound_state_zero:
+0C0B            768            ; PLAY_SOUND(#0x00, #0x00, #0x2D, #0x00, #0xD6, #0xD8) inputs will be hex numbers (diff segments of address)
+0C0B            768            ; input has to automatically be in hex format with the #
+0C0B C28E       768            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0C0D            768            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0C0D D2A5       768            setb FLASH_CE
+0C0F C2A6       768            clr SPEAKER
+0C11            768   
+0C11 C2A5       768            clr FLASH_CE
+0C13 7403       768            mov a, #READ_BYTES
+0C15 120381     768            lcall Send_SPI
+0C18            768   
+0C18 7400       768            mov a, #0x00
+0C1A            768            
+0C1A 120381     768            lcall Send_SPI 
+0C1D            768            
+0C1D 7400       768            mov a, #0x00
+0C1F 120381     768            lcall Send_SPI
+0C22            768   
+0C22 742D       768            mov a, #0x2D
+0C24 120381     768            lcall Send_SPI
+0C27 7400       768            mov a, #0x00
+0C29 120381     768            lcall Send_SPI
+0C2C            768   
+0C2C 753200     768            mov w+2, #0x00
+0C2F 7531D6     768            mov w+1, #0xD6
+0C32 7530D8     768            mov w+0, #0xD8
+0C35            768            
+0C35 D2A6       768            setb SPEAKER
+0C37 D28E       768            setb TR1
+0C39            768            
+0C39 12060D     769            lcall Delay
+0C3C C002       770            push AR2
+0C3E 7AFA       770            mov R2, #250
+0C40 1202A9     770            lcall ?Wait_Milli_Seconds
+0C43 D002       770            pop AR2
+0C45 C002       771            push AR2
+0C47 7AFA       771            mov R2, #250
+0C49 1202A9     771            lcall ?Wait_Milli_Seconds
+0C4C D002       771            pop AR2
+0C4E C002       772            push AR2
+0C50 7AFA       772            mov R2, #250
+0C52 1202A9     772            lcall ?Wait_Milli_Seconds
+0C55 D002       772            pop AR2
+0C57 22         773            ret 
+0C58            774   
+0C58            775   
+0C58            776   
+0C58            777            sound_state_one:
+0C58            778            ; PLAY_SOUND(#0x01, #0x00, #0xFF, #0x00, #0x30, #0xFC) inputs will be hex numbers (diff segments of address)
+0C58            778            ; input has to automatically be in hex format with the #
+0C58 C28E       778            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0C5A            778            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0C5A D2A5       778            setb FLASH_CE
+0C5C C2A6       778            clr SPEAKER
+0C5E            778   
+0C5E C2A5       778            clr FLASH_CE
+0C60 7403       778            mov a, #READ_BYTES
+0C62 120381     778            lcall Send_SPI
+0C65            778   
+0C65 7401       778            mov a, #0x01
+0C67            778            
+0C67 120381     778            lcall Send_SPI 
+0C6A            778            
+0C6A 7400       778            mov a, #0x00
+0C6C 120381     778            lcall Send_SPI
+0C6F            778   
+0C6F 74FF       778            mov a, #0xFF
+0C71 120381     778            lcall Send_SPI
+0C74 7400       778            mov a, #0x00
+0C76 120381     778            lcall Send_SPI
+0C79            778   
+0C79 753200     778            mov w+2, #0x00
+0C7C 753130     778            mov w+1, #0x30
+0C7F 7530FC     778            mov w+0, #0xFC
+0C82            778            
+0C82 D2A6       778            setb SPEAKER
+0C84 D28E       778            setb TR1
+0C86            778            
+0C86 12060D     779            lcall Delay
+0C89 22         780            ret 
+0C8A            781   
+0C8A            782   
+0C8A            783            sound_state_two:
+0C8A            784            ; PLAY_SOUND(#0x01, #0x33, #0xDF, #0x00, #0x36, #0xB0) inputs will be hex numbers (diff segments of address)
+0C8A            784            ; input has to automatically be in hex format with the #
+0C8A C28E       784            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0C8C            784            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0C8C D2A5       784            setb FLASH_CE
+0C8E C2A6       784            clr SPEAKER
+0C90            784   
+0C90 C2A5       784            clr FLASH_CE
+0C92 7403       784            mov a, #READ_BYTES
+0C94 120381     784            lcall Send_SPI
+0C97            784   
+0C97 7401       784            mov a, #0x01
+0C99            784            
+0C99 120381     784            lcall Send_SPI 
+0C9C            784            
+0C9C 7433       784            mov a, #0x33
+0C9E 120381     784            lcall Send_SPI
+0CA1            784   
+0CA1 74DF       784            mov a, #0xDF
+0CA3 120381     784            lcall Send_SPI
+0CA6 7400       784            mov a, #0x00
+0CA8 120381     784            lcall Send_SPI
+0CAB            784   
+0CAB 753200     784            mov w+2, #0x00
+0CAE 753136     784            mov w+1, #0x36
+0CB1 7530B0     784            mov w+0, #0xB0
+0CB4            784            
+0CB4 D2A6       784            setb SPEAKER
+0CB6 D28E       784            setb TR1
+0CB8            784            
+0CB8 12060D     785            lcall Delay
+0CBB 22         786            ret 
+0CBC            787   
+0CBC            788   
+0CBC            789            sound_state_three:
+0CBC            790            ; PLAY_SOUND(#0x01, #0x95, #0xD7, #0x00, #0x4E, #0x20) inputs will be hex numbers (diff segments of address)
+0CBC            790            ; input has to automatically be in hex format with the #
+0CBC C28E       790            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0CBE            790            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0CBE D2A5       790            setb FLASH_CE
+0CC0 C2A6       790            clr SPEAKER
+0CC2            790   
+0CC2 C2A5       790            clr FLASH_CE
+0CC4 7403       790            mov a, #READ_BYTES
+0CC6 120381     790            lcall Send_SPI
+0CC9            790   
+0CC9 7401       790            mov a, #0x01
+0CCB            790            
+0CCB 120381     790            lcall Send_SPI 
+0CCE            790            
+0CCE 7495       790            mov a, #0x95
+0CD0 120381     790            lcall Send_SPI
+0CD3            790   
+0CD3 74D7       790            mov a, #0xD7
+0CD5 120381     790            lcall Send_SPI
+0CD8 7400       790            mov a, #0x00
+0CDA 120381     790            lcall Send_SPI
+0CDD            790   
+0CDD 753200     790            mov w+2, #0x00
+0CE0 75314E     790            mov w+1, #0x4E
+0CE3 753020     790            mov w+0, #0x20
+0CE6            790            
+0CE6 D2A6       790            setb SPEAKER
+0CE8 D28E       790            setb TR1
+0CEA            790            
+0CEA 12060D     791            lcall Delay
+0CED 22         792            ret 
+0CEE            793   
+0CEE            794   
+0CEE            795            sound_state_four:
+0CEE            796            ; PLAY_SOUND(#0x01, #0xF7, #0xCF, #0x00, #0x3A, #0x98) inputs will be hex numbers (diff segments of address)
+0CEE            796            ; input has to automatically be in hex format with the #
+0CEE C28E       796            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0CF0            796            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0CF0 D2A5       796            setb FLASH_CE
+0CF2 C2A6       796            clr SPEAKER
+0CF4            796   
+0CF4 C2A5       796            clr FLASH_CE
+0CF6 7403       796            mov a, #READ_BYTES
+0CF8 120381     796            lcall Send_SPI
+0CFB            796   
+0CFB 7401       796            mov a, #0x01
+0CFD            796            
+0CFD 120381     796            lcall Send_SPI 
+0D00            796            
+0D00 74F7       796            mov a, #0xF7
+0D02 120381     796            lcall Send_SPI
+0D05            796   
+0D05 74CF       796            mov a, #0xCF
+0D07 120381     796            lcall Send_SPI
+0D0A 7400       796            mov a, #0x00
+0D0C 120381     796            lcall Send_SPI
+0D0F            796   
+0D0F 753200     796            mov w+2, #0x00
+0D12 75313A     796            mov w+1, #0x3A
+0D15 753098     796            mov w+0, #0x98
+0D18            796            
+0D18 D2A6       796            setb SPEAKER
+0D1A D28E       796            setb TR1
+0D1C            796            
+0D1C 12060D     797            lcall Delay
+0D1F 22         798            ret 
+0D20            799   
+0D20            800            sound_state_five:
+0D20            801            ; PLAY_SOUND(#0x02, #0x33, #0x00, #0x00, #0x4E, #0x20) inputs will be hex numbers (diff segments of address)
+0D20            801            ; input has to automatically be in hex format with the #
+0D20 C28E       801            clr TR1 ; Stop Timer 1 ISR from playing previous request
+0D22            801            ; I think we'll want to remove the above instruction and include it right AFTER this has been called
+0D22 D2A5       801            setb FLASH_CE
+0D24 C2A6       801            clr SPEAKER
+0D26            801   
+0D26 C2A5       801            clr FLASH_CE
+0D28 7403       801            mov a, #READ_BYTES
+0D2A 120381     801            lcall Send_SPI
+0D2D            801   
+0D2D 7402       801            mov a, #0x02
+0D2F            801            
+0D2F 120381     801            lcall Send_SPI 
+0D32            801            
+0D32 7433       801            mov a, #0x33
+0D34 120381     801            lcall Send_SPI
+0D37            801   
+0D37 7400       801            mov a, #0x00
+0D39 120381     801            lcall Send_SPI
+0D3C 7400       801            mov a, #0x00
+0D3E 120381     801            lcall Send_SPI
+0D41            801   
+0D41 753200     801            mov w+2, #0x00
+0D44 75314E     801            mov w+1, #0x4E
+0D47 753020     801            mov w+0, #0x20
+0D4A            801            
+0D4A D2A6       801            setb SPEAKER
+0D4C D28E       801            setb TR1
+0D4E            801            
+0D4E 12060D     802            lcall Delay
+0D51 22         803            ret 
+0D52            804   
+0D52            805   ;---------------------------------;
+0D52            806   ; Main program. Includes hardware ;
+0D52            807   ; initialization and 'forever'    ;
+0D52            808   ; loop.                           ;
+0D52            809   ;---------------------------------;
+0D52            810   main:
+0D52            811            ; Initialization
+0D52 75817F     812       mov SP, #0x7F
+0D55            813    
+0D55 75E600     814       mov P0M0, #0
+0D58 75E700     815       mov P0M1, #0
+0D5B            816   
+0D5B            817            ; Enable the timer and interrupts
+0D5B            818       ;setb ET1  ; Enable timer 1 interrupt
+0D5B            819            ; setb TR1 ; Timer 1 is only enabled to play stored sound
+0D5B            820   
+0D5B            821   
+0D5B            822            ;mov counter, #0
+0D5B 754000     823            mov seconds, #0
+0D5E C207       824            clr five_second_flag
+0D60 C20A       825            clr one_second_flag
+0D62 120440     826            lcall Timer2_Init
+0D65            827            
+0D65            828            ;setb EA ; Enable interrupts
+0D65            829   
+0D65            830            
+0D65 120529     831            lcall Load_Configuration
+0D68            832            
+0D68            833            ; enabling SPI communication
+0D68 120406     834            lcall INIT_SPI_FLASH
+0D6B 12040A     835            lcall INIT_SPI
+0D6E 120428     836            lcall InitSerialPort
+0D71            837            
+0D71            838            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+0D71            839            ; Configure P2.4, P2.5, P2.7 as open drain outputs (they need 1k pull-ups to 3.3V)
+0D71 43CEB0     840            orl P2M0, #0b_1011_0000
+0D74 43CFB0     841            orl P2M1, #0b_1011_0000
+0D77 D296       842            setb MY_MISO  ; Configured as input
+0D79 D2A5       843            setb FLASH_CE ; CS=1 for SPI flash memory
+0D7B C2A7       844            clr MY_SCLK   ; Rest state of SCLK=0
+0D7D C2A6       845            clr SPEAKER   ; Turn off speaker.
+0D7F            846    
+0D7F            847   ; Configure timer 1
+0D7F 53890F     848            anl TMOD, #0x0F ; Clear the bits of timer 1 in TMOD
+0D82 438910     849            orl TMOD, #0x10 ; Set timer 1 in 16-bit timer mode.  Don't change the bits of timer 0
+0D85 758DFC     850            mov TH1, #high(TIMER1_RELOAD)
+0D88 758B15     851            mov TL1, #low(TIMER1_RELOAD)
+0D8B            852            ; Set autoreload value
+0D8B 75F5FC     853            mov RH1, #high(TIMER1_RELOAD)
+0D8E 75F315     854            mov RL1, #low(TIMER1_RELOAD)
+0D91            855            
+0D91            856            ; Enable the timer and interrupts
+0D91            857            
+0D91 D2AB       858            setb ET1  ; Enable timer 1 interrupt
+0D93            859            ; setb TR1 ; Timer 1 is only enabled to play stored sound
+0D93            860            
+0D93            861            
+0D93            862            ; Configure the DAC.  The DAC output we are using is P2.3, but P2.2 is also reserved.
+0D93 75A5A0     863            mov DADI, #0b_1010_0000 ; ACON=1
+0D96 75A43A     864            mov DADC, #0b_0011_1010 ; Enabled, DAC mode, Left adjusted, CLK/4
+0D99 75AD80     865            mov DADH, #0x80 ; Middle of scale
+0D9C 75AC00     866            mov DADL, #0
+0D9F 43A440     867            orl DADC, #0b_0100_0000 ; Start DAC by GO/BSY=1
+0DA2            868            check_DAC_init:
+0DA2 E5A4       869            mov a, DADC
+0DA4 20E6FB     870            jb acc.6, check_DAC_init ; Wait for DAC to finish
+0DA7            871             
+0DA7 D2AF       872            setb EA ; Enable interrupts
+0DA9            873   ;;;;;;;;;;;;;;;;;;;;;;;;
+0DA9            874            
+0DA9 1202F8     875       lcall LCD_4BIT
+0DAC D201       876            setb state0flag
+0DAE C202       877            clr state1flag
+0DB0 C203       878            clr state2flag
+0DB2 C204       879            clr state3flag
+0DB4 C205       880            clr state4flag
+0DB6 C206       881            clr state5flag
+0DB8            882            
+0DB8 D286       883            setb SHIFT_PB
+0DBA            884            
+0DBA            885   
+0DBA            886            ; set default pwm output to 20 instead of 0
+0DBA 753D00     887            mov pwm+0, #low(0)
+0DBD 753E00     888            mov pwm+1, #high(0)
+0DC0            889   
+0DC0            890       ; For convenience a few handy macros are included in 'LCD_4bit.inc':
+0DC0 C0E0       891            push acc
+0DC2 7401       891            mov a, #1
+0DC4 14         891            dec a
+0DC5 12032F     891            lcall ?Set_Cursor_1 ; Select column and row
+0DC8 D0E0       891            pop acc
+0DCA C083       892            push dph
+0DCC C082       892            push dpl
+0DCE C0E0       892            push acc
+0DD0 900505     892            mov dptr, #Initial_Message
+0DD3 120322     892            lcall ?Send_Constant_String
+0DD6 D0E0       892            pop acc
+0DD8 D082       892            pop dpl
+0DDA D083       892            pop dph
+0DDC C0E0       893            push acc
+0DDE 7401       893            mov a, #1
+0DE0 14         893            dec a
+0DE1 12032D     893            lcall ?Set_Cursor_2 ; Select column and row
+0DE4 D0E0       893            pop acc
+0DE6 C083       894            push dph
+0DE8 C082       894            push dpl
+0DEA C0E0       894            push acc
+0DEC 900517     894            mov dptr, #Line
+0DEF 120322     894            lcall ?Send_Constant_String
+0DF2 D0E0       894            pop acc
+0DF4 D082       894            pop dpl
+0DF6 D083       894            pop dph
+0DF8            894   
+0DF8            895       
+0DF8            896       ;Display Variables
+0DF8 C0E0       897            push acc
+0DFA 7404       897            mov a, #4
+0DFC 14         897            dec a
+0DFD 12032D     897            lcall ?Set_Cursor_2 ; Select column and row
+0E00 D0E0       897            pop acc
+0E02 E533       898       mov a, time_soak
+0E04 1204B2     899       lcall SendToLCD
+0E07 C0E0       900            push acc
+0E09 7404       900            mov a, #4
+0E0B 14         900            dec a
+0E0C 12032F     900            lcall ?Set_Cursor_1 ; Select column and row
+0E0F D0E0       900            pop acc
+0E11 E535       901            mov a, temp_soak
+0E13 1204B2     902       lcall SendToLCD
+0E16 C0E0       903            push acc
+0E18 7409       903            mov a, #9
+0E1A 14         903            dec a
+0E1B 12032D     903            lcall ?Set_Cursor_2 ; Select column and row
+0E1E D0E0       903            pop acc
+0E20 E534       904            mov a, time_refl
+0E22 1204B2     905       lcall SendToLCD
+0E25 C0E0       906            push acc
+0E27 7409       906            mov a, #9
+0E29 14         906            dec a
+0E2A 12032F     906            lcall ?Set_Cursor_1 ; Select column and row
+0E2D D0E0       906            pop acc
+0E2F E536       907            mov a, temp_refl
+0E31 1204B2     908       lcall SendToLCD
+0E34 754000     909       mov seconds, #0
+0E37 8000       910       sjmp loop
+0E39            911   
+0E39            912   loop:
+0E39            913            
+0E39 20852C     914   jb TEMP_SOAK_PB, loop_a
+0E3C C002       914            push AR2
+0E3E 7A32       914            mov R2, #50
+0E40 1202A9     914            lcall ?Wait_Milli_Seconds
+0E43 D002       914            pop AR2 ; de-bounce
+0E45 208520     914   jb TEMP_SOAK_PB, loop_a
+0E48 3085FD     914   jnb TEMP_SOAK_PB, $
+0E4B 208604     914   jb SHIFT_PB, skip86b
+0E4E 1535       914   dec temp_soak
+0E50 8002       914   sjmp skip86a
+0E52            914   skip86b:
+0E52 0535       914   inc temp_soak
+0E54            914   skip86a:
+0E54 C0E0       915            push acc
+0E56 7404       915            mov a, #4
+0E58 14         915            dec a
+0E59 12032F     915            lcall ?Set_Cursor_1 ; Select column and row
+0E5C D0E0       915            pop acc
+0E5E E535       916            mov a, temp_soak 
+0E60 1204B2     917            lcall SendToLCD
+0E63 1204CE     918            lcall Save_Configuration
+0E66 8000       919            sjmp loop_a
+0E68            920                    
+0E68            921   loop_a:
+0E68 20832C     922   jb TIME_SOAK_PB, loop_b
+0E6B C002       922            push AR2
+0E6D 7A32       922            mov R2, #50
+0E6F 1202A9     922            lcall ?Wait_Milli_Seconds
+0E72 D002       922            pop AR2 ; de-bounce
+0E74 208320     922   jb TIME_SOAK_PB, loop_b
+0E77 3083FD     922   jnb TIME_SOAK_PB, $
+0E7A 208604     922   jb SHIFT_PB, skip89b
+0E7D 1533       922   dec time_soak
+0E7F 8002       922   sjmp skip89a
+0E81            922   skip89b:
+0E81 0533       922   inc time_soak
+0E83            922   skip89a:
+0E83 C0E0       923            push acc
+0E85 7404       923            mov a, #4
+0E87 14         923            dec a
+0E88 12032D     923            lcall ?Set_Cursor_2 ; Select column and row
+0E8B D0E0       923            pop acc
+0E8D E533       924            mov a, time_soak 
+0E8F 1204B2     925            lcall SendToLCD
+0E92 1204CE     926            lcall Save_Configuration
+0E95 8000       927            sjmp loop_b
+0E97            928            
+0E97            929   loop_b:
+0E97 20822C     930   jb TEMP_REFL_PB, loop_c
+0E9A C002       930            push AR2
+0E9C 7A32       930            mov R2, #50
+0E9E 1202A9     930            lcall ?Wait_Milli_Seconds
+0EA1 D002       930            pop AR2 ; de-bounce
+0EA3 208220     930   jb TEMP_REFL_PB, loop_c
+0EA6 3082FD     930   jnb TEMP_REFL_PB, $
+0EA9 208604     930   jb SHIFT_PB, skip92b
+0EAC 1536       930   dec temp_refl
+0EAE 8002       930   sjmp skip92a
+0EB0            930   skip92b:
+0EB0 0536       930   inc temp_refl
+0EB2            930   skip92a:
+0EB2 C0E0       931            push acc
+0EB4 740B       931            mov a, #11
+0EB6 14         931            dec a
+0EB7 12032F     931            lcall ?Set_Cursor_1 ; Select column and row
+0EBA D0E0       931            pop acc
+0EBC E536       932            mov a, temp_refl
+0EBE 1204B2     933            lcall SendToLCD
+0EC1 1204CE     934            lcall Save_Configuration
+0EC4 8000       935            sjmp loop_c
+0EC6            936                    
+0EC6            937   loop_c:
+0EC6 20802C     938   jb TIME_REFL_PB, loop_d
+0EC9 C002       938            push AR2
+0ECB 7A32       938            mov R2, #50
+0ECD 1202A9     938            lcall ?Wait_Milli_Seconds
+0ED0 D002       938            pop AR2 ; de-bounce
+0ED2 208020     938   jb TIME_REFL_PB, loop_d
+0ED5 3080FD     938   jnb TIME_REFL_PB, $
+0ED8 208604     938   jb SHIFT_PB, skip95b
+0EDB 1534       938   dec time_refl
+0EDD 8002       938   sjmp skip95a
+0EDF            938   skip95b:
+0EDF 0534       938   inc time_refl
+0EE1            938   skip95a:
+0EE1 C0E0       939            push acc
+0EE3 740B       939            mov a, #11
+0EE5 14         939            dec a
+0EE6 12032D     939            lcall ?Set_Cursor_2 ; Select column and row
+0EE9 D0E0       939            pop acc
+0EEB E534       940            mov a, time_refl
+0EED 1204B2     941            lcall SendToLCD
+0EF0 1204CE     942            lcall Save_Configuration
+0EF3 8000       943            sjmp loop_d
+0EF5            944            
+0EF5            945   loop_d:
+0EF5 20802C     946   jb TIME_REFL_PB, state0
+0EF8 C002       946            push AR2
+0EFA 7A32       946            mov R2, #50
+0EFC 1202A9     946            lcall ?Wait_Milli_Seconds
+0EFF D002       946            pop AR2 ; de-bounce
+0F01 208020     946   jb TIME_REFL_PB, state0
+0F04 3080FD     946   jnb TIME_REFL_PB, $
+0F07 208604     946   jb SHIFT_PB, skip98b
+0F0A 1534       946   dec time_refl
+0F0C 8002       946   sjmp skip98a
+0F0E            946   skip98b:
+0F0E 0534       946   inc time_refl
+0F10            946   skip98a:
+0F10 C0E0       947            push acc
+0F12 740E       947            mov a, #14
+0F14 14         947            dec a
+0F15 12032D     947            lcall ?Set_Cursor_2 ; Select column and row
+0F18 D0E0       947            pop acc
+0F1A E539       948            mov a, temp
+0F1C 1204B2     949            lcall SendToLCD
+0F1F 1204CE     950            lcall Save_Configuration
+0F22 8000       951            sjmp state0
+0F24            952   
+0F24            953   state0:
+0F24            954            ;**set power to 0%**
+0F24 C206       955            clr state5flag ; just in case,
+0F26 D201       956            setb state0flag
+0F28 753D00     957            mov pwm+0, #low(0)
+0F2B 753E00     958            mov pwm+1, #high(0)
+0F2E            959            ;Wait_Milli_Seconds(#255)
+0F2E            960            
+0F2E 021015     961            ljmp state_one
+0F31            962            state0_2: 
+0F31 754000     963       mov seconds, #0
+0F34            964            ;mov counter, #0
+0F34            965   
+0F34 120595     966            lcall TEMP_JUNCTION
+0F37 C281       967            clr DEBUG
+0F39 20870F     968            jb START, loop_leap ;START is pushbutton to start reflow
+0F3C C002       969            push AR2
+0F3E 7A32       969            mov R2, #50
+0F40 1202A9     969            lcall ?Wait_Milli_Seconds
+0F43 D002       969            pop AR2         ; Debounce delay
+0F45 208703     970            jb START, loop_leap 
+0F48 308703     971            jnb START, state1       
+0F4B            972            
+0F4B            973   loop_leap:
+0F4B 020E39     974       ljmp loop
+0F4E            975   state1:
+0F4E C201       976            clr state0flag
+0F50 D202       977            setb state1flag
+0F52 021015     978            ljmp state_one
+0F55            979            ;ljmp state_zero ;jumps to second finite state machine
+0F55            980            state1_2: 
+0F55 753DE8     981       mov pwm+0, #low(1000) ;CHANGE BACK TO 1000
+0F58 753E03     982            mov pwm+1, #high(1000)
+0F5B C002       983            push AR2
+0F5D 7AFF       983            mov R2, #255
+0F5F 1202A9     983            lcall ?Wait_Milli_Seconds
+0F62 D002       983            pop AR2
+0F64 D281       984            setb DEBUG
+0F66 E4         985            clr a
+0F67            986            ;mov counter, #0 ;setting seconds to zero
+0F67            987            ;setb DEBUG
+0F67 120595     988            lcall TEMP_JUNCTION
+0F6A C3         989            clr c
+0F6B E539       990            mov a, temp
+0F6D 9535       991            subb a, temp_soak
+0F6F 4005       992            jc state1_x
+0F71 754000     993            mov seconds, #0
+0F74 8015       994            sjmp state2
+0F76            995   state1_x:
+0F76 E540       996            mov a, seconds
+0F78 643C       997            xrl a, #60
+0F7A 6002       998            jz ABORT_CHECK 
+0F7C 70D0       999            jnz state1
+0F7E           1000            
+0F7E           1001   ABORT_CHECK:
+0F7E E539      1002            mov a, temp
+0F80 9432      1003            subb a, #50
+0F82 4002      1004            jc ABORT
+0F84 80C8      1005            sjmp state1
+0F86           1006            
+0F86           1007   ABORT:
+0F86 C202      1008       clr state1flag
+0F88 020F24    1009            ljmp state0
+0F8B           1010            
+0F8B           1011   state2:
+0F8B C202      1012            clr state1flag
+0F8D D203      1013            setb state2flag ;use this to increment counter in Timer ISR
+0F8F 021015    1014            ljmp state_one
+0F92           1015            ;mov seconds, #0
+0F92           1016            state2_2: 
+0F92 753DC8    1017       mov pwm+0, #low(200)
+0F95 753E00    1018            mov pwm+1, #high(200)
+0F98 C002      1019            push AR2
+0F9A 7AFF      1019            mov R2, #255
+0F9C 1202A9    1019            lcall ?Wait_Milli_Seconds
+0F9F D002      1019            pop AR2
+0FA1 120595    1020            lcall TEMP_JUNCTION
+0FA4           1021            ;clr DEBUG
+0FA4           1022            ;jb state3flag, state3
+0FA4 E540      1023            mov a, seconds
+0FA6 6533      1024            xrl a, time_soak
+0FA8 6002      1025            jz state3
+0FAA           1026            ;cjne a, time_soak, state2
+0FAA           1027            ;mov counter, #0
+0FAA 80DF      1028            sjmp state2
+0FAC           1029   
+0FAC           1030   state3:
+0FAC           1031            ;setb DEBUG
+0FAC C203      1032            clr state2flag
+0FAE D204      1033            setb state3flag
+0FB0 021015    1034            ljmp state_one
+0FB3           1035            ;mov seconds, #0
+0FB3           1036            state3_2: 
+0FB3 753DE8    1037       mov pwm+0, #low(1000)
+0FB6 753E03    1038            mov pwm+1, #high(1000)
+0FB9 C002      1039            push AR2
+0FBB 7AFF      1039            mov R2, #255
+0FBD 1202A9    1039            lcall ?Wait_Milli_Seconds
+0FC0 D002      1039            pop AR2
+0FC2 120595    1040            lcall TEMP_JUNCTION
+0FC5 E539      1041            mov a, temp
+0FC7 C3        1042            clr c
+0FC8 9536      1043            subb a, temp_refl
+0FCA 40E0      1044            jc state3
+0FCC 754000    1045            mov seconds, #0; setting seconds to zero so that when we get to state 4 it starts counting
+0FCF 8000      1046            sjmp state4
+0FD1           1047   
+0FD1           1048   state4:
+0FD1           1049            ;clr DEBUG
+0FD1 C204      1050            clr state3flag
+0FD3 D205      1051            setb state4flag
+0FD5 021015    1052            ljmp state_one
+0FD8           1053            ;mov seconds, #0
+0FD8           1054            state4_2: 
+0FD8 753DC8    1055       mov pwm+0, #low(200)
+0FDB 753E00    1056            mov pwm+1, #high(200)
+0FDE C002      1057            push AR2
+0FE0 7AFF      1057            mov R2, #255
+0FE2 1202A9    1057            lcall ?Wait_Milli_Seconds
+0FE5 D002      1057            pop AR2
+0FE7 120595    1058            lcall TEMP_JUNCTION
+0FEA E540      1059            mov a, seconds
+0FEC B534E2    1060            cjne a, time_refl, state4
+0FEF 8000      1061            sjmp state5
+0FF1           1062   
+0FF1           1063   state5:
+0FF1           1064            ;setb DEBUG
+0FF1 C205      1065            clr state4flag
+0FF3 D206      1066            setb state5flag
+0FF5 021015    1067            ljmp state_one
+0FF8           1068            ;mov seconds, #0
+0FF8           1069            state5_2: 
+0FF8 753D00    1070       mov pwm+0, #low(0)
+0FFB 753E00    1071            mov pwm+1, #high(0)
+0FFE C002      1072            push AR2
+1000 7AFF      1072            mov R2, #255
+1002 1202A9    1072            lcall ?Wait_Milli_Seconds
+1005 D002      1072            pop AR2
+1007 120595    1073            lcall TEMP_JUNCTION
+100A 754000    1074            mov seconds, #0; setting seconds to zero
+100D E539      1075            mov a, temp
+100F B43BDF    1076            cjne a, #59, state5     
+1012 020E39    1077            ljmp loop
+1015           1078   
+1015           1079   
+1015           1080   
+1015           1081   FSM2:
+1015           1082            ; function
+1015           1083            ;Finit staet machine for sound, set a flag for states then produce sound
+1015           1084            ;state_zero:
+1015           1085            ;jb START, state_zero ;START is pushbutton to start reflow
+1015           1086            ;Wait_Milli_Seconds(#50)        ; Debounce delay
+1015           1087            ;jb START, state_zero 
+1015           1088            ;jnb START, state_one   ; if buttons is pressed go to state one 
+1015           1089            
+1015           1090   state_one: 
+1015 D208      1091            setb done_playing_flag
+1017           1092            ; compare temperature, if temp <100 -> state 5 else -> state 2
+1017 200703    1093            jb five_second_flag, state_one_x
+101A 021196    1094            ljmp state_seven
+101D           1095            
+101D           1096   state_one_x:
+101D C208      1097       clr done_playing_flag
+101F 20010F    1098            jb state0flag, zero_state_s
+1022 200211    1099            jb state1flag, one_state_s
+1025 200313    1100            jb state2flag, two_state_s
+1028 200415    1101            jb state3flag, three_state_s
+102B 200517    1102            jb state4flag, four_state_s
+102E 200619    1103            jb state5flag, five_state_s
+1031           1104            
+1031           1105            zero_state_s: 
+1031 120C0B    1106       lcall sound_state_zero
+1034 8019      1107            sjmp after_saying_state
+1036           1108            one_state_s: 
+1036 120C58    1109       lcall sound_state_one
+1039 8014      1110            sjmp after_saying_state
+103B           1111            two_state_s: 
+103B 120C8A    1112       lcall sound_state_two
+103E 800F      1113            sjmp after_saying_state
+1040           1114            three_state_s: 
+1040 120CBC    1115       lcall sound_state_three
+1043 800A      1116            sjmp after_saying_state
+1045           1117            four_state_s: 
+1045 120CEE    1118       lcall sound_state_four 
+1048 8005      1119            sjmp after_saying_state
+104A           1120            five_state_s: 
+104A 120D20    1121       lcall sound_state_five
+104D 8000      1122            sjmp after_saying_state
+104F           1123            
+104F           1124            
+104F           1125            after_saying_state: 
+104F D208      1126       setb done_playing_flag
+1051 E539      1127            mov a, temp
+1053 C3        1128            clr c
+1054 9464      1129            subb a, #100
+1056 4026      1130            jc state_five ;smaller than 100 to state 5
+1058 02105B    1131            ljmp state_two
+105B           1132            
+105B           1133   state_two:
+105B           1134            ;temp larger than 100, play 100 or 200
+105B C208      1135            clr done_playing_flag
+105D E539      1136            mov a, temp
+105F 75F064    1137            mov b, #100
+1062 84        1138            div ab 
+1063 B4020A    1139            cjne a, #2, call_sound_100
+1066 8000      1140            sjmp call_sound_200
+1068           1141   
+1068           1142   
+1068           1143            call_sound_200:
+1068 120BD9    1144            lcall sound_200
+106B D208      1145            setb done_playing_flag
+106D           1146            ;jnb TR1, done_playing
+106D 021078    1147            ljmp state_three
+1070           1148            
+1070           1149   
+1070           1150            call_sound_100:
+1070 120BAA    1151            lcall sound_100
+1073 D208      1152            setb done_playing_flag
+1075 021078    1153            ljmp state_three
+1078           1154   
+1078           1155            
+1078           1156   state_three:
+1078           1157            ; check if done playing sound
+1078 3008FD    1158            jnb done_playing_flag, state_three
+107B 02107E    1159            ljmp state_five
+107E           1160   
+107E           1161   ; no state 4 lolsies
+107E           1162   
+107E           1163   state_five:
+107E E539      1164            mov a, temp
+1080 75F064    1165            mov b, #100
+1083 84        1166            div ab
+1084           1167            ;remainder is b
+1084 E5F0      1168            mov a, b
+1086 C3        1169            clr c
+1087 9414      1170            subb a, #20
+1089 4003      1171            jc state_six ; <20 -> state 6 
+108B 0211EE    1172            ljmp state_eight ; >= 20 -> state 8
+108E           1173   
+108E           1174   state_six:
+108E           1175            ;check all 0 to 20 and call sound
+108E           1176            ;jnb  five_second_flag, no_sound
+108E           1177            ;cjne a, #0, sound_zero_fun
+108E E539      1178            mov a, temp
+1090 75F064    1179            mov b, #100
+1093 84        1180            div ab
+1094           1181            ;remainder is b
+1094 E5F0      1182            mov a, b
+1096           1183            
+1096 6400      1184            xrl a, #0
+1098 021196    1185            ljmp state_seven ;all we have left to say is "zero"
+109B C208      1186            clr done_playing_flag
+109D           1187   
+109D 6401      1188            xrl a, #1 
+109F 6003      1189            jz sound_one_fun
+10A1 0210AA    1190            ljmp sound_two_fun_2
+10A4           1191            sound_one_fun:
+10A4 120664    1192            lcall sound_one
+10A7 021191    1193            ljmp state_five_b
+10AA           1194            
+10AA           1195            sound_two_fun_2:
+10AA 6402      1196            xrl a, #2 
+10AC 6003      1197            jz sound_two_fun 
+10AE 0210B7    1198            ljmp sound_three_fun_3
+10B1           1199            sound_two_fun:
+10B1 120696    1200            lcall sound_two
+10B4 021191    1201            ljmp state_five_b
+10B7           1202            
+10B7           1203            sound_three_fun_3:
+10B7 6403      1204            xrl a, #3
+10B9 6003      1205            jz sound_three_fun
+10BB 0210C4    1206            ljmp sound_four_fun_4
+10BE           1207            sound_three_fun:
+10BE 1206C8    1208            lcall sound_three
+10C1 021191    1209            ljmp state_five_b
+10C4           1210            
+10C4           1211            sound_four_fun_4:
+10C4 6404      1212            xrl a ,#4
+10C6 6003      1213            jz sound_four_fun
+10C8 0210D1    1214            ljmp sound_five_fun_5
+10CB           1215            sound_four_fun:
+10CB 1206FA    1216            lcall sound_four
+10CE 021191    1217            ljmp state_five_b
+10D1           1218            
+10D1           1219            sound_five_fun_5:
+10D1 6405      1220            xrl a ,#5 
+10D3 6003      1221            jz sound_five_fun
+10D5 0210DE    1222            ljmp sound_six_fun_6
+10D8           1223            sound_five_fun:
+10D8 12072C    1224            lcall sound_five
+10DB 021191    1225            ljmp state_five_b
+10DE           1226   
+10DE           1227            sound_six_fun_6:
+10DE 6406      1228            xrl a, #6
+10E0 6003      1229            jz sound_six_fun
+10E2 0210EB    1230            ljmp  sound_seven_fun_7
+10E5           1231            sound_six_fun:
+10E5 12075E    1232            lcall sound_six
+10E8 021191    1233            ljmp state_five_b
+10EB           1234            
+10EB           1235            sound_seven_fun_7:
+10EB 6407      1236            xrl a, #7
+10ED 6003      1237            jz sound_seven_fun
+10EF 0210F8    1238            ljmp sound_eight_fun_8
+10F2           1239            sound_seven_fun:
+10F2 120790    1240            lcall sound_seven
+10F5 021191    1241            ljmp state_five_b
+10F8           1242            
+10F8           1243            sound_eight_fun_8:
+10F8 6408      1244            xrl a, #8
+10FA 6003      1245            jz sound_eight_fun
+10FC 021105    1246            ljmp sound_nine_fun_9
+10FF           1247            sound_eight_fun:
+10FF 1207C2    1248            lcall sound_eight
+1102 021191    1249            ljmp state_five_b
+1105           1250            
+1105           1251            sound_nine_fun_9:
+1105 6409      1252            xrl a, #9
+1107 6003      1253            jz sound_nine_fun
+1109 021112    1254            ljmp sound_ten_fun_10
+110C           1255            sound_nine_fun:
+110C 1207F4    1256            lcall sound_nine
+110F 021191    1257            ljmp state_five_b
+1112           1258            
+1112           1259            sound_ten_fun_10:
+1112 640A      1260            xrl a, #10
+1114 6003      1261            jz sound_ten_fun
+1116 02111F    1262            ljmp sound_ele_fun_11
+1119           1263            sound_ten_fun:
+1119 120826    1264            lcall sound_ten
+111C 021191    1265            ljmp state_five_b
+111F           1266            
+111F           1267            sound_ele_fun_11:
+111F 640B      1268            xrl a ,#11
+1121 6003      1269            jz sound_eleven_fun
+1123 02112C    1270            ljmp sound_tw_fun_12
+1126           1271            sound_eleven_fun:
+1126 120858    1272            lcall sound_eleven
+1129 021191    1273            ljmp state_five_b
+112C           1274            
+112C           1275            sound_tw_fun_12:
+112C 640C      1276            xrl a ,#12
+112E 6003      1277            jz sound_twelve_fun
+1130 021139    1278            ljmp sound_thirteen_fun_13
+1133           1279            sound_twelve_fun:
+1133 12088A    1280            lcall sound_twelve
+1136 021191    1281            ljmp state_five_b
+1139           1282            
+1139           1283            sound_thirteen_fun_13:
+1139 640D      1284            xrl a, #13
+113B 6003      1285            jz sound_thirteen_fun
+113D 021146    1286            ljmp sound_fourteen_fun_14
+1140           1287            sound_thirteen_fun:
+1140 1208BC    1288            lcall sound_thirteen
+1143 021191    1289            ljmp state_five_b
+1146           1290            
+1146           1291            sound_fourteen_fun_14:
+1146 640E      1292            xrl a, #14
+1148 6003      1293            jz sound_fourteen_fun
+114A 021153    1294            ljmp sound_fifteen_fun_15
+114D           1295            sound_fourteen_fun:
+114D 1208EE    1296            lcall sound_fourteen
+1150 021191    1297            ljmp state_five_b
+1153           1298            
+1153           1299            sound_fifteen_fun_15:
+1153 640F      1300            xrl a, #15
+1155 6003      1301            jz sound_fifteen_fun
+1157 021160    1302            ljmp sound_sixteen_fun_16
+115A           1303            sound_fifteen_fun:
+115A 120920    1304            lcall sound_fifteen
+115D 021191    1305            ljmp state_five_b
+1160           1306            
+1160           1307            sound_sixteen_fun_16:
+1160 6410      1308            xrl a, #16
+1162 6003      1309            jz sound_sixteen_fun
+1164 02116D    1310            ljmp sound_seventeen_fun_17
+1167           1311            sound_sixteen_fun:
+1167 120952    1312            lcall sound_sixteen
+116A 021191    1313            ljmp state_five_b
+116D           1314            
+116D           1315            sound_seventeen_fun_17:
+116D 6411      1316            xrl a, #17
+116F 6003      1317            jz sound_seventeen_fun
+1171 02117A    1318            ljmp  sound_eteen_fun_18
+1174           1319            sound_seventeen_fun:
+1174 120790    1320            lcall sound_seven
+1177 021191    1321            ljmp state_five_b
+117A           1322            
+117A           1323            sound_eteen_fun_18:
+117A 6412      1324            xrl a ,#18
+117C 6003      1325            jz sound_eighteen_fun
+117E 021187    1326            ljmp sound_nteen_fun_19
+1181           1327            sound_eighteen_fun:
+1181 1209B6    1328            lcall sound_eighteen
+1184 021191    1329            ljmp state_five_b
+1187           1330            
+1187           1331            sound_nteen_fun_19:
+1187 6413      1332            xrl a ,#19
+1189 6000      1333            jz sound_nineteen_fun
+118B           1334            sound_nineteen_fun:
+118B 1209E8    1335            lcall sound_nineteen
+118E 021191    1336            ljmp state_five_b
+1191           1337   
+1191           1338    
+1191           1339   
+1191           1340            state_five_b:
+1191           1341            ;jnb TR1, done_playing02
+1191 D208      1342            setb done_playing_flag
+1193 021196    1343            ljmp state_seven
+1196           1344   
+1196           1345   state_seven:
+1196 3008FD    1346            jnb done_playing_flag, state_seven
+1199 8000      1347            sjmp continue
+119B           1348            
+119B           1349            continue:
+119B           1350            ; this is where we incorporate jumping with flags ;check this
+119B C207      1351            clr five_second_flag
+119D 20013C    1352            jb state0flag, zero_state
+11A0 C002      1353            push AR2
+11A2 7A32      1353            mov R2, #50
+11A4 1202A9    1353            lcall ?Wait_Milli_Seconds
+11A7 D002      1353            pop AR2
+11A9 200233    1354            jb state1flag, one_state
+11AC C002      1355            push AR2
+11AE 7A32      1355            mov R2, #50
+11B0 1202A9    1355            lcall ?Wait_Milli_Seconds
+11B3 D002      1355            pop AR2
+11B5 20032A    1356            jb state2flag, two_state
+11B8 C002      1357            push AR2
+11BA 7A32      1357            mov R2, #50
+11BC 1202A9    1357            lcall ?Wait_Milli_Seconds
+11BF D002      1357            pop AR2
+11C1 200421    1358            jb state3flag, three_state
+11C4 C002      1359            push AR2
+11C6 7A32      1359            mov R2, #50
+11C8 1202A9    1359            lcall ?Wait_Milli_Seconds
+11CB D002      1359            pop AR2
+11CD 200518    1360            jb state4flag, four_state
+11D0 C002      1361            push AR2
+11D2 7A32      1361            mov R2, #50
+11D4 1202A9    1361            lcall ?Wait_Milli_Seconds
+11D7 D002      1361            pop AR2
+11D9 20060F    1362            jb state5flag, five_state
+11DC           1363   
+11DC           1364            
+11DC           1365            zero_state: 
+11DC 020F31    1366       ljmp state0_2
+11DF           1367            one_state: 
+11DF 020F55    1368       ljmp state1_2
+11E2           1369            two_state: 
+11E2 020F92    1370       ljmp state2_2
+11E5           1371            three_state: 
+11E5 020FB3    1372       ljmp state3_2
+11E8           1373            four_state: 
+11E8 020FD8    1374       ljmp state4_2
+11EB           1375            five_state: 
+11EB 020FF8    1376       ljmp state5_2
+11EE           1377   
+11EE           1378   state_eight:
+11EE E539      1379            mov a, temp
+11F0 75F064    1380            mov b, #100
+11F3 84        1381            div ab
+11F4           1382            ;remainder is b
+11F4 E5F0      1383            mov a, b
+11F6           1384            ; sound 20-90 increment of 10
+11F6 75F00A    1385            mov b, #10
+11F9 84        1386            div ab ; want quotient from here
+11FA           1387   
+11FA           1388            ;check 5 sec
+11FA           1389            ;jnb  five_second_flag, no_sound03
+11FA C208      1390            clr done_playing_flag
+11FC           1391   
+11FC           1392            ; remainder + 20
+11FC 6402      1393            xrl a , #2
+11FE 6003      1394            jz sound_twenty_fun
+1200 021209    1395            ljmp sound_30_fun
+1203           1396   
+1203           1397            sound_twenty_fun:
+1203 120A1A    1398            lcall sound_twenty
+1206 021264    1399            ljmp state_eight_b
+1209           1400            
+1209           1401            sound_30_fun:
+1209 6403      1402            xrl a, #3
+120B 6003      1403            jz sound_thirty_fun
+120D 021216    1404            ljmp  sound_40_fun
+1210           1405            sound_thirty_fun:
+1210 120A4C    1406            lcall sound_thirty
+1213 021264    1407            ljmp state_eight_b
+1216           1408            
+1216           1409            
+1216           1410            sound_40_fun:
+1216 6404      1411            xrl a, #4
+1218 6003      1412            jz sound_forty_fun
+121A 021223    1413            ljmp  sound_50_fun
+121D           1414            sound_forty_fun:
+121D 120A7E    1415            lcall sound_forty
+1220 021264    1416            ljmp state_eight_b
+1223           1417            
+1223           1418            
+1223           1419            sound_50_fun:
+1223 6405      1420            xrl a, #5
+1225 6003      1421            jz sound_fifty_fun
+1227 021230    1422            ljmp sound_60_fun
+122A           1423            sound_fifty_fun:
+122A 120AB0    1424            lcall sound_fifty
+122D 021264    1425            ljmp state_eight_b
+1230           1426            
+1230           1427            
+1230           1428            sound_60_fun:
+1230 6406      1429            xrl a, #6
+1232 6003      1430            jz sound_sixty_fun
+1234 02123D    1431            ljmp sound_70_fun
+1237           1432            sound_sixty_fun:
+1237 120AE2    1433            lcall sound_sixty
+123A 021264    1434            ljmp state_eight_b
+123D           1435            
+123D           1436            
+123D           1437            sound_70_fun:
+123D 6407      1438            xrl a, #7
+123F 6003      1439            jz sound_seventy_fun
+1241 02124A    1440            ljmp sound_80_fun
+1244           1441            sound_seventy_fun:
+1244 120B14    1442            lcall sound_seventy
+1247 021264    1443            ljmp state_eight_b
+124A           1444            
+124A           1445            sound_80_fun:
+124A 6408      1446            xrl a, #8
+124C 6003      1447            jz sound_eighty_fun
+124E 021257    1448            ljmp sound_90_fun
+1251           1449            sound_eighty_fun:
+1251 120B46    1450            lcall sound_eighty
+1254 021264    1451            ljmp state_eight_b
+1257           1452            
+1257           1453            
+1257           1454            sound_90_fun:
+1257 6409      1455            xrl a, #9
+1259 6003      1456            jz sound_ninety_fun
+125B 021264    1457            ljmp state_eight_b
+125E           1458            sound_ninety_fun:
+125E 120B78    1459            lcall sound_ninety
+1261 021264    1460            ljmp state_eight_b
+1264           1461            
+1264           1462            
+1264           1463   state_eight_b:
+1264 E5F0      1464            mov a,b ;mov remainder to a 
+1266           1465            ;jnb TR1, do_not_play
+1266           1466            ;do_not_play: ljmp done_playing02
+1266 D208      1467            setb done_playing_flag
+1268 02126B    1468            ljmp state_nine
+126B           1469   
+126B           1470   state_nine:
+126B 3008FD    1471            jnb done_playing_flag, state_nine
+126E 021271    1472            ljmp state_ten
+1271           1473   
+1271           1474   state_ten:
+1271 C208      1475            clr done_playing_flag
+1273           1476   
+1273           1477            sound_one_fun_:
+1273 6401      1478            xrl a, #1
+1275 6003      1479            jz sound_one_fun01
+1277 021280    1480            ljmp sound_2_fun_
+127A           1481            sound_one_fun01:
+127A 120664    1482            lcall sound_one
+127D 0212E8    1483            ljmp state_ten_b
+1280           1484            
+1280           1485            sound_2_fun_:
+1280 6402      1486            xrl a, #2
+1282 6003      1487            jz sound_two_fun01
+1284 02128D    1488            ljmp sound_3_fun_
+1287           1489            sound_two_fun01:
+1287 120696    1490            lcall sound_two
+128A 0212E8    1491            ljmp state_ten_b
+128D           1492            
+128D           1493            sound_3_fun_:
+128D 6403      1494            xrl a, #3
+128F 6003      1495            jz sound_three_fun01
+1291 02129A    1496            ljmp sound_4_fun_
+1294           1497            sound_three_fun01:
+1294 1206C8    1498            lcall sound_three
+1297 0212E8    1499            ljmp state_ten_b
+129A           1500            
+129A           1501            sound_4_fun_:
+129A 6404      1502            xrl a, #4
+129C 6003      1503            jz sound_four_fun01
+129E 0212A7    1504            ljmp sound_5_fun_
+12A1           1505            sound_four_fun01:
+12A1 1206FA    1506            lcall sound_four
+12A4 0212E8    1507            ljmp state_ten_b
+12A7           1508            
+12A7           1509            sound_5_fun_:
+12A7 6405      1510            xrl a, #5
+12A9 6003      1511            jz sound_five_fun01
+12AB 0212B4    1512            ljmp sound_6_fun_
+12AE           1513            sound_five_fun01:
+12AE 12072C    1514            lcall sound_five
+12B1 0212E8    1515            ljmp state_ten_b
+12B4           1516            
+12B4           1517            
+12B4           1518            sound_6_fun_:
+12B4 6406      1519            xrl a, #6
+12B6 6003      1520            jz sound_six_fun01
+12B8 0212C1    1521            ljmp sound_7_fun_
+12BB           1522            sound_six_fun01:
+12BB 12075E    1523            lcall sound_six
+12BE 0212E8    1524            ljmp state_ten_b
+12C1           1525            
+12C1           1526            
+12C1           1527            sound_7_fun_:
+12C1 6407      1528            xrl a, #7
+12C3 6003      1529            jz sound_seven_fun01
+12C5 0212CE    1530            ljmp sound_8_fun_
+12C8           1531            sound_seven_fun01:
+12C8 120790    1532            lcall sound_seven
+12CB 0212E8    1533            ljmp state_ten_b
+12CE           1534            
+12CE           1535            
+12CE           1536            sound_8_fun_:
+12CE 6408      1537            xrl a, #8
+12D0 6003      1538            jz sound_eight_fun01
+12D2 0212DB    1539            ljmp sound_9_fun_
+12D5           1540            sound_eight_fun01:
+12D5 1207C2    1541            lcall sound_eight
+12D8 0212E8    1542            ljmp state_ten_b
+12DB           1543            
+12DB           1544            
+12DB           1545            sound_9_fun_:
+12DB 6409      1546            xrl a, #9
+12DD 6003      1547            jz sound_nine_fun01
+12DF 0212E8    1548            ljmp state_ten_b
+12E2           1549            sound_nine_fun01:
+12E2 1207F4    1550            lcall sound_nine
+12E5 0212E8    1551            ljmp state_ten_b
+12E8           1552            
+12E8           1553   state_ten_b:
+12E8 D208      1554            setb done_playing_flag
+12EA 021196    1555            ljmp state_seven
+12ED           1556   
+12ED           1557   END
